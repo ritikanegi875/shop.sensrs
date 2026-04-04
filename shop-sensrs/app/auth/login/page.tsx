@@ -2,11 +2,8 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
-  const router = useRouter();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -23,10 +20,7 @@ export default function LoginPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
+        body: JSON.stringify({ email, password }),
       });
 
       const data = await res.json();
@@ -38,10 +32,16 @@ export default function LoginPage() {
       }
 
       setMessage("Login successful. Redirecting...");
+
       setTimeout(() => {
-        router.push("/");
-      }, 500);
+        if (data.user?.role === "admin") {
+          window.location.href = "/admin";
+        } else {
+          window.location.href = "/";
+        }
+      }, 300);
     } catch (error) {
+      console.error("LOGIN PAGE ERROR:", error);
       setMessage("Something went wrong");
       setLoading(false);
     }

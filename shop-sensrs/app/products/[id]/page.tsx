@@ -1,49 +1,85 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
-import { useCart } from "@/context/CartContext";
-import { useWishlist } from "@/context/WishlistContext";
-import { useProducts } from "@/context/ProductContext";
 import { useParams } from "next/navigation";
+import { useCart } from "@/context/CartContext";
 
-export default function ProductDetail() {
-  const { addToCart } = useCart();
-  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
-  const { getProductById } = useProducts();
+type Product = {
+  _id: string;
+  title: string;
+  price: number;
+  image: string;
+  category: string;
+  description: string;
+};
+
+export default function ProductDetailPage() {
   const params = useParams();
-  const id = Number(params.id);
+  const id = params.id as string;
 
-  const product = getProductById(id);
+  const { addToCart } = useCart();
 
-  if (!product) {
-    return <h1>Product not found</h1>;
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchProduct() {
+      try {
+        const res = await fetch(`/api/products/${id}`, {
+          cache: "no-store",
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          setProduct(data.product);
+        }
+      } catch (error) {
+        console.error("FETCH PRODUCT DETAIL ERROR:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    if (id) {
+      fetchProduct();
+    }
+  }, [id]);
+
+  if (loading) {
+    return <p className="empty-admin-records">Loading product...</p>;
   }
 
-  const wished = isInWishlist(product.id);
+  if (!product) {
+    return <p className="empty-admin-records">Product not found.</p>;
+  }
 
   return (
-    <section className="product-detail">
-      <div className="product-detail-container">
+    <section className="product-detail-page">
+      <div className="product-detail-card">
         <div className="product-detail-image">
           <Image
             src={product.image}
             alt={product.title}
-            width={400}
-            height={400}
+            width={500}
+            height={500}
           />
         </div>
 
-        <div className="product-detail-info">
+        <div className="product-detail-content">
+          <span className="product-category">{product.category}</span>
           <h1>{product.title}</h1>
-          <p className="category">{product.category}</p>
-          <p className="price">₹{product.price.toLocaleString("en-IN")}</p>
-          <p className="description">{product.description}</p>
+          <p className="product-detail-price">
+            ₹{product.price.toLocaleString("en-IN")}
+          </p>
+          <p className="product-detail-description">{product.description}</p>
 
           <div className="detail-actions">
             <button
+              className="primary-btn"
               onClick={() =>
                 addToCart({
-                  id: product.id,
+                  id: Number(product._id.slice(-6).replace(/\D/g, "") || "1"),
                   title: product.title,
                   price: product.price,
                   image: product.image,
@@ -51,23 +87,6 @@ export default function ProductDetail() {
               }
             >
               Add to Cart
-            </button>
-
-            <button
-              className="secondary-btn"
-              onClick={() =>
-                wished
-                  ? removeFromWishlist(product.id)
-                  : addToWishlist({
-                      id: product.id,
-                      title: product.title,
-                      price: product.price,
-                      image: product.image,
-                      category: product.category,
-                    })
-              }
-            >
-              {wished ? "Remove from Wishlist" : "Add to Wishlist"}
             </button>
           </div>
         </div>

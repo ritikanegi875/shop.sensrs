@@ -1,4 +1,4 @@
-import mongoose, { Schema, model, models } from "mongoose";
+import { Schema, model, models } from "mongoose";
 
 const ProductSchema = new Schema(
   {
@@ -14,6 +14,7 @@ const ProductSchema = new Schema(
     image: {
       type: String,
       required: true,
+      trim: true,
     },
     category: {
       type: String,
@@ -23,6 +24,11 @@ const ProductSchema = new Schema(
     description: {
       type: String,
       required: true,
+      trim: true,
+    },
+    publicId: {
+      type: String,
+      default: "",
       trim: true,
     },
   },

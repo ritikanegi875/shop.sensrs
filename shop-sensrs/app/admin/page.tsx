@@ -93,6 +93,11 @@ export default function AdminPage() {
               <p>Add, edit, and organize product listings.</p>
             </Link>
 
+            <Link href="/admin/banners" className="admin-action-card">
+              <h3>Manage Banners</h3>
+              <p>Upload homepage banners from device and manage slider images.</p>
+            </Link>
+
             <Link href="/admin/orders" className="admin-action-card">
               <h3>View Orders</h3>
               <p>Track all Buy Now records from customers.</p>

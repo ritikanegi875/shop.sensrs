@@ -29,5 +29,12 @@ export function generateToken(payload: {
 }
 
 export function verifyToken(token: string) {
-  return jwt.verify(token, JWT_SECRET);
+  return jwt.verify(token, JWT_SECRET) as
+  {
+    userId: string;
+    email: string;
+    role: string;
+    iat: number;
+    exp: number;
+  };
 }

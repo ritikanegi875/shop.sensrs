@@ -2,13 +2,9 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
 
-export default function LoginPage() {
-  const router = useRouter();
-
+export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -18,31 +14,19 @@ export default function LoginPage() {
     setMessage("");
 
     try {
-      const res = await fetch("/api/auth/login", {
+      const res = await fetch("/api/auth/forgot-password", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
+        body: JSON.stringify({ email }),
       });
 
       const data = await res.json();
-
-      if (!data.success) {
-        setMessage(data.message || "Login failed");
-        setLoading(false);
-        return;
-      }
-
-      setMessage("Login successful. Redirecting...");
-      setTimeout(() => {
-        router.push("/");
-      }, 500);
+      setMessage(data.message || "Please check your email.");
     } catch (error) {
       setMessage("Something went wrong");
+    } finally {
       setLoading(false);
     }
   };
@@ -50,8 +34,8 @@ export default function LoginPage() {
   return (
     <section className="auth-page">
       <div className="auth-card">
-        <h1>Login</h1>
-        <p>Access your account to continue.</p>
+        <h1>Forgot Password</h1>
+        <p>Enter your email address to receive a password reset link.</p>
 
         <form className="auth-form" onSubmit={handleSubmit}>
           <div className="form-group">
@@ -64,29 +48,15 @@ export default function LoginPage() {
             />
           </div>
 
-          <div className="form-group">
-            <label>Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-
           {message && <p className="auth-message">{message}</p>}
 
           <button type="submit" className="primary-btn" disabled={loading}>
-            {loading ? "Logging In..." : "Login"}
+            {loading ? "Sending Link..." : "Send Reset Link"}
           </button>
         </form>
 
         <p className="auth-switch">
-          Don’t have an account? <Link href="/auth/signup">Sign Up</Link>
-        </p>
-
-        <p className="auth-switch">
-          <Link href="/auth/forgot-password">Forgot Password?</Link>
+          Back to <Link href="/auth/login">Login</Link>
         </p>
       </div>
     </section>

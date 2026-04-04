@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function SignupPage() {
@@ -12,6 +12,29 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const res = await fetch("/api/auth/me", {
+          cache: "no-store",
+        });
+        const data = await res.json();
+
+        if (data.success && data.user) {
+          if (data.user.role === "admin") {
+            router.replace("/admin");
+          } else {
+            router.replace("/");
+          }
+        }
+      } catch (error) {
+        console.error("AUTH CHECK ERROR:", error);
+      }
+    }
+
+    checkAuth();
+  }, [router]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -42,7 +65,7 @@ export default function SignupPage() {
       setMessage("Account created successfully. Redirecting to login...");
       setTimeout(() => {
         router.push("/auth/login");
-      }, 1200);
+      }, 1000);
     } catch (error) {
       setMessage("Something went wrong");
       setLoading(false);

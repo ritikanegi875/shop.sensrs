@@ -6,6 +6,7 @@ import { hashPassword } from "@/lib/auth";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    console.log("REGISTER BODY:", body);
 
     const { name, email, password } = body;
 
@@ -27,10 +28,12 @@ export async function POST(req: Request) {
     }
 
     await connectDB();
+    console.log("REGISTER DB CONNECTED");
 
     const existingUser = await User.findOne({
       email: email.toLowerCase(),
     });
+    console.log("EXISTING USER:", existingUser);
 
     if (existingUser) {
       return NextResponse.json(
@@ -40,6 +43,7 @@ export async function POST(req: Request) {
     }
 
     const hashedPassword = await hashPassword(password);
+    console.log("HASHED PASSWORD CREATED");
 
     const newUser = await User.create({
       name,
@@ -47,6 +51,8 @@ export async function POST(req: Request) {
       password: hashedPassword,
       role: "user",
     });
+
+    console.log("NEW USER CREATED:", newUser);
 
     return NextResponse.json({
       success: true,
@@ -59,7 +65,9 @@ export async function POST(req: Request) {
       },
     });
   } catch (error: any) {
-    console.error("REGISTER ERROR:", error);
+    console.error("REGISTER ERROR FULL:", error);
+    console.error("REGISTER ERROR MESSAGE:", error?.message);
+    console.error("REGISTER ERROR STACK:", error?.stack);
 
     return NextResponse.json(
       {

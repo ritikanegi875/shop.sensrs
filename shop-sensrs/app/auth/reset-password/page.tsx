@@ -2,29 +2,43 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
-export default function LoginPage() {
+export default function ResetPasswordPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const [email, setEmail] = useState("");
+  const token = searchParams.get("token") || "";
+
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setMessage("");
 
+    if (!token) {
+      setMessage("Invalid reset link");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setMessage("Passwords do not match");
+      return;
+    }
+
+    setLoading(true);
+
     try {
-      const res = await fetch("/api/auth/login", {
+      const res = await fetch("/api/auth/reset-password", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email,
+          token,
           password,
         }),
       });
@@ -32,15 +46,15 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (!data.success) {
-        setMessage(data.message || "Login failed");
+        setMessage(data.message || "Reset failed");
         setLoading(false);
         return;
       }
 
-      setMessage("Login successful. Redirecting...");
+      setMessage("Password reset successfully. Redirecting to login...");
       setTimeout(() => {
-        router.push("/");
-      }, 500);
+        router.push("/auth/login");
+      }, 1200);
     } catch (error) {
       setMessage("Something went wrong");
       setLoading(false);
@@ -50,22 +64,12 @@ export default function LoginPage() {
   return (
     <section className="auth-page">
       <div className="auth-card">
-        <h1>Login</h1>
-        <p>Access your account to continue.</p>
+        <h1>Reset Password</h1>
+        <p>Enter your new password below.</p>
 
         <form className="auth-form" onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>Email Address</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Password</label>
+            <label>New Password</label>
             <input
               type="password"
               value={password}
@@ -74,19 +78,25 @@ export default function LoginPage() {
             />
           </div>
 
+          <div className="form-group">
+            <label>Confirm New Password</label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+            />
+          </div>
+
           {message && <p className="auth-message">{message}</p>}
 
           <button type="submit" className="primary-btn" disabled={loading}>
-            {loading ? "Logging In..." : "Login"}
+            {loading ? "Resetting..." : "Reset Password"}
           </button>
         </form>
 
         <p className="auth-switch">
-          Don’t have an account? <Link href="/auth/signup">Sign Up</Link>
-        </p>
-
-        <p className="auth-switch">
-          <Link href="/auth/forgot-password">Forgot Password?</Link>
+          Back to <Link href="/auth/login">Login</Link>
         </p>
       </div>
     </section>

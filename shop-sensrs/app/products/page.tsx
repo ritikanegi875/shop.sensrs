@@ -15,10 +15,11 @@ type Product = {
 
 export default function ProductsPage() {
   const searchParams = useSearchParams();
-  const searchQuery = (searchParams.get("search") || "").toLowerCase().trim();
+  const search = searchParams.get("search")?.toLowerCase() || "";
 
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [maxPrice, setMaxPrice] = useState(100000);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,7 +34,7 @@ export default function ProductsPage() {
           setProducts(data.products || []);
         }
       } catch (error) {
-        console.error("FETCH PRODUCTS ERROR:", error);
+        console.error("PRODUCTS PAGE ERROR:", error);
       } finally {
         setLoading(false);
       }
@@ -44,25 +45,24 @@ export default function ProductsPage() {
 
   const categories = useMemo(() => {
     const uniqueCategories = Array.from(
-      new Set(products.map((product) => product.category).filter(Boolean))
+      new Set(products.map((product) => product.category || "Uncategorized"))
     );
     return ["All", ...uniqueCategories];
   }, [products]);
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
+      const matchesSearch = product.title.toLowerCase().includes(search);
+
       const matchesCategory =
-        selectedCategory === "All" || product.category === selectedCategory;
+        selectedCategory === "All" ||
+        (product.category || "Uncategorized") === selectedCategory;
 
-      const matchesSearch =
-        !searchQuery ||
-        product.title.toLowerCase().includes(searchQuery) ||
-        product.category.toLowerCase().includes(searchQuery) ||
-        product.description.toLowerCase().includes(searchQuery);
+      const matchesPrice = product.price <= maxPrice;
 
-      return matchesCategory && matchesSearch;
+      return matchesSearch && matchesCategory && matchesPrice;
     });
-  }, [products, selectedCategory, searchQuery]);
+  }, [products, search, selectedCategory, maxPrice]);
 
   return (
     <section className="products-page">
@@ -71,26 +71,37 @@ export default function ProductsPage() {
         <p>Browse all available products.</p>
       </div>
 
-      <div className="product-filter-bar">
-        {categories.map((category) => (
-          <button
-            key={category}
-            type="button"
-            className={`filter-btn ${
-              selectedCategory === category ? "active-filter-btn" : ""
-            }`}
-            onClick={() => setSelectedCategory(category)}
-          >
-            {category}
-          </button>
-        ))}
-      </div>
+      <div className="products-filters">
+        <div className="category-filters">
+          {categories.map((category) => (
+            <button
+              key={category}
+              type="button"
+              className={`filter-chip ${
+                selectedCategory === category ? "active" : ""
+              }`}
+              onClick={() => setSelectedCategory(category)}
+            >
+              {category}
+            </button>
+          ))}
+        </div>
 
-      {searchQuery && (
-        <p className="search-results-text">
-          Search results for: <strong>{searchQuery}</strong>
-        </p>
-      )}
+        <div className="price-filter-box">
+          <label htmlFor="priceRange">
+            Max Price: ₹{maxPrice.toLocaleString("en-IN")}
+          </label>
+          <input
+            id="priceRange"
+            type="range"
+            min="0"
+            max="100000"
+            step="500"
+            value={maxPrice}
+            onChange={(e) => setMaxPrice(Number(e.target.value))}
+          />
+        </div>
+      </div>
 
       {loading ? (
         <p className="empty-admin-records">Loading products...</p>

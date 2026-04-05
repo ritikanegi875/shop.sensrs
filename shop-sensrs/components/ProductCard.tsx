@@ -1,58 +1,39 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 
-type Props = {
-  _id?: string;
-  id?: number;
+interface ProductCardProps {
+  _id: string;
   title: string;
   price: number;
   image: string;
   category?: string;
-};
+}
 
 export default function ProductCard({
   _id,
-  id,
   title,
   price,
   image,
   category,
-}: Props) {
+}: ProductCardProps) {
+  const router = useRouter();
   const { addToCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
 
-  const productId = _id ?? String(id ?? "");
+  const numericId = Number(_id.slice(-6).replace(/\D/g, "") || "1");
+  const inWishlist = isInWishlist(_id);
 
-  const inWishlist = isInWishlist(productId);
-
-  const handleAddToCart = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const derivedId = Number(String(_id ?? "").slice(-6).replace(/\D/g, "")) || 1;
-const cartId = id ?? derivedId;
-
-    addToCart({
-      id: cartId,
-      title,
-      price,
-      image,
-    });
-  };
-
-  const handleWishlist = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
+  const handleWishlistToggle = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
 
     if (inWishlist) {
-      removeFromWishlist(productId);
+      removeFromWishlist(_id);
     } else {
       addToWishlist({
-        id: productId,
+        id: _id,
         title,
         price,
         image,
@@ -62,31 +43,43 @@ const cartId = id ?? derivedId;
 
   return (
     <div className="product-card">
-      <Link href={`/products/${_id || id}`}>
-        <div className="product-image-box">
-          <Image src={image} alt={title} width={260} height={220} />
-        </div>
-      </Link>
-
-      <button
-        type="button"
-        className="wishlist-heart-btn"
-        onClick={handleWishlist}
+      <div
+        className="product-image-container"
+        onClick={() => router.push(`/products/${_id}`)}
       >
-        {inWishlist ? "♥" : "♡"}
-      </button>
+        <img src={image} alt={title} className="product-image" />
 
-      {category && <span className="product-category">{category}</span>}
+        <button
+          type="button"
+          className="wishlist-btn"
+          onClick={handleWishlistToggle}
+        >
+          {inWishlist ? "❤️" : "🤍"}
+        </button>
+      </div>
 
-      <Link href={`/products/${_id || id}`} className="product-card-title-link">
-        <h3>{title}</h3>
-      </Link>
+      <div className="product-info">
+        {category && <p className="product-category">{category}</p>}
 
-      <p>₹{price.toLocaleString("en-IN")}</p>
+        <h3 className="product-title">{title}</h3>
 
-      <button type="button" onClick={handleAddToCart}>
-        Add to Cart
-      </button>
+        <p className="product-price">₹{price.toLocaleString("en-IN")}</p>
+
+        <button
+          type="button"
+          className="add-to-cart-btn"
+          onClick={() =>
+            addToCart({
+              id: numericId,
+              title,
+              price,
+              image,
+            })
+          }
+        >
+          Add to Cart
+        </button>
+      </div>
     </div>
   );
 }

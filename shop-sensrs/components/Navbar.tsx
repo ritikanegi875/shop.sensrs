@@ -114,6 +114,7 @@ export default function Navbar() {
           <Link href="/products">Products</Link>
 
           {user?.role === "admin" && <Link href="/admin">Admin</Link>}
+          {user && <Link href= "/account">Account</Link>}
 
           <Link href="/wishlist" className="wishlist-link">
             Wishlist

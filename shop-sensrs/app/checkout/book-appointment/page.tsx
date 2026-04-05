@@ -1,178 +1,264 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { generateAppointmentCode } from "@/lib/checkout-storage";
 
-function generateTimeSlots() {
-  const slots: string[] = [];
-  const startHour = 10;
-  const endHour = 17;
+type Address = {
+  _id: string;
+  label: string;
+  fullName: string;
+  phone: string;
+  addressLine: string;
+  city: string;
+  state: string;
+  pincode: string;
+  isDefault?: boolean;
+};
 
-  for (let hour = startHour; hour < endHour; hour++) {
-    for (let minute = 0; minute < 60; minute += 20) {
-      const start = new Date();
-      start.setHours(hour, minute, 0, 0);
+type ProfileUser = {
+  _id: string;
+  name: string;
+  email: string;
+  role: string;
+  addresses?: Address[];
+};
 
-      const end = new Date();
-      end.setHours(hour, minute + 20, 0, 0);
-
-      const format = (date: Date) =>
-        date.toLocaleTimeString("en-IN", {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: true,
-        });
-
-      slots.push(`${format(start)} - ${format(end)}`);
-    }
-  }
-
-  return slots;
-}
-
-export default function BookAppointmentPage() {
+export default function AppointmentPage() {
   const router = useRouter();
+
+  const [user, setUser] = useState<ProfileUser | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [loading, setLoading] = useState(false);
+
+  const [selectedAddressId, setSelectedAddressId] = useState("");
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [purpose, setPurpose] = useState("");
+  const [addressLine, setAddressLine] = useState("");
+  const [city, setCity] = useState("");
+  const [stateName, setStateName] = useState("");
+  const [pincode, setPincode] = useState("");
+
   const [date, setDate] = useState("");
   const [timeSlot, setTimeSlot] = useState("");
-  const [notes, setNotes] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [bookedSlots, setBookedSlots] = useState<string[]>([]);
-  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [message, setMessage] = useState("");
 
-  const allSlots = useMemo(() => generateTimeSlots(), []);
+  const fillAddressFields = (address: Address, fallbackEmail?: string) => {
+    setFullName(address.fullName || "");
+    setPhone(address.phone || "");
+    setAddressLine(address.addressLine || "");
+    setCity(address.city || "");
+    setStateName(address.state || "");
+    setPincode(address.pincode || "");
+    if (fallbackEmail) setEmail(fallbackEmail);
+  };
 
   useEffect(() => {
-    async function fetchBookedSlots() {
-      if (!date) {
-        setBookedSlots([]);
-        return;
-      }
-
+    async function fetchProfile() {
       try {
-        setSlotsLoading(true);
+        const res = await fetch("/api/account/profile", {
+          cache: "no-store",
+        });
 
-        const res = await fetch(
-          `/api/appointments/slots?date=${encodeURIComponent(date)}`
-        );
         const data = await res.json();
 
-        if (data.success) {
-          setBookedSlots(data.bookedSlots || []);
-        } else {
-          setBookedSlots([]);
+        if (!data.success || !data.user) {
+          router.push("/auth/login?redirect=/appointments");
+          return;
+        }
+
+        const fetchedUser = data.user as ProfileUser;
+        setUser(fetchedUser);
+        setEmail(fetchedUser.email || "");
+
+        if (fetchedUser.addresses && fetchedUser.addresses.length > 0) {
+          const defaultAddress =
+            fetchedUser.addresses.find((address) => address.isDefault) ||
+            fetchedUser.addresses[0];
+
+          setSelectedAddressId(defaultAddress._id);
+          fillAddressFields(defaultAddress, fetchedUser.email);
         }
       } catch (error) {
-        console.error(error);
-        setBookedSlots([]);
+        console.error("APPOINTMENT PROFILE ERROR:", error);
+        router.push("/auth/login?redirect=/appointments");
       } finally {
-        setSlotsLoading(false);
+        setLoadingProfile(false);
       }
     }
 
-    fetchBookedSlots();
-  }, [date]);
+    fetchProfile();
+  }, [router]);
 
-  const availableSlots = allSlots.filter(
-    (slot) => !bookedSlots.includes(slot)
-  );
+  const handleAddressSelect = (addressId: string) => {
+    setSelectedAddressId(addressId);
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setError("");
+    const selected = user?.addresses?.find((a) => a._id === addressId);
+    if (selected) {
+      fillAddressFields(selected, user?.email || "");
+    }
+  };
 
-    if (!date || !timeSlot) {
-      setError("Please select date and time slot.");
+  const handleSubmit = async () => {
+    if (
+      !fullName ||
+      !email ||
+      !phone ||
+      !addressLine ||
+      !city ||
+      !stateName ||
+      !pincode ||
+      !date ||
+      !timeSlot
+    ) {
+      alert("Please fill all fields");
       return;
     }
 
-    setLoading(true);
-
-    const code = generateAppointmentCode();
-
-    const payload = {
-      type: "BOOK_APPOINTMENT",
-      code,
-      fullName,
-      email,
-      phone,
-      purpose,
-      date,
-      timeSlot,
-      notes,
-      createdAt: new Date().toISOString(),
-    };
-
     try {
+      setLoading(true);
+
       const res = await fetch("/api/appointments", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          fullName,
+          email,
+          phone,
+          addressLine,
+          city,
+          state: stateName,
+          pincode,
+          date,
+          timeSlot,
+          message,
+        }),
       });
 
       const data = await res.json();
 
-      if (!data.success) {
-        setError(data.message || "Something went wrong");
-        setLoading(false);
-        return;
+      if (data.success) {
+        alert("Appointment booked successfully!");
+        router.push("/account");
+      } else {
+        alert(data.message || "Booking failed");
       }
-
-      router.push(
-        `/checkout/success?type=appointment&code=${encodeURIComponent(code)}`
-      );
-    } catch (err) {
-      setError("Server error. Try again.");
+    } catch (error) {
+      console.error("APPOINTMENT BOOKING ERROR:", error);
+      alert("Something went wrong");
+    } finally {
       setLoading(false);
     }
   };
 
+  if (loadingProfile) {
+    return <p className="empty-admin-records">Loading appointment form...</p>;
+  }
+
   return (
     <section className="checkout-form-page">
       <div className="checkout-form-header">
-        <h1>Book an Appointment</h1>
-        <p>Select your details, date, and available 20-minute slot.</p>
+        <h1>Book Appointment</h1>
+        <p>Choose a saved address or enter details manually.</p>
       </div>
 
-      <form
-        className="checkout-form appointment-form"
-        onSubmit={handleSubmit}
-      >
+      {user?.addresses && user.addresses.length > 0 && (
+        <div className="saved-address-picker">
+          <h2>Choose Saved Address</h2>
+          <div className="saved-address-list">
+            {user.addresses.map((address) => (
+              <button
+                key={address._id}
+                type="button"
+                className={`saved-address-item ${
+                  selectedAddressId === address._id ? "active" : ""
+                }`}
+                onClick={() => handleAddressSelect(address._id)}
+              >
+                <strong>{address.label || "Address"}</strong>
+                <p>{address.fullName}</p>
+                <p>{address.phone}</p>
+                <p>{address.addressLine}</p>
+                <p>
+                  {address.city}, {address.state} - {address.pincode}
+                </p>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="checkout-form appointment-form">
         <div className="form-group">
           <label>Full Name</label>
           <input
             type="text"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
-            required
+            placeholder="Enter full name"
           />
         </div>
 
         <div className="form-group">
-          <label>Email</label>
+          <label>Email Address</label>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            required
+            placeholder="Enter email"
           />
         </div>
 
         <div className="form-group">
-          <label>Phone</label>
+          <label>Phone Number</label>
           <input
-            type="tel"
+            type="text"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            required
+            placeholder="Enter phone number"
+          />
+        </div>
+
+        <div className="form-group full-width">
+          <label>Address Line</label>
+          <textarea
+            rows={4}
+            value={addressLine}
+            onChange={(e) => setAddressLine(e.target.value)}
+            placeholder="House no, street, locality, landmark"
+          />
+        </div>
+
+        <div className="form-group">
+          <label>City</label>
+          <input
+            type="text"
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+            placeholder="Enter city"
+          />
+        </div>
+
+        <div className="form-group">
+          <label>State</label>
+          <input
+            type="text"
+            value={stateName}
+            onChange={(e) => setStateName(e.target.value)}
+            placeholder="Enter state"
+          />
+        </div>
+
+        <div className="form-group">
+          <label>Pincode</label>
+          <input
+            type="text"
+            value={pincode}
+            onChange={(e) => setPincode(e.target.value)}
+            placeholder="Enter pincode"
           />
         </div>
 
@@ -181,67 +267,46 @@ export default function BookAppointmentPage() {
           <input
             type="date"
             value={date}
-            onChange={(e) => {
-              setDate(e.target.value);
-              setTimeSlot("");
-            }}
-            required
+            onChange={(e) => setDate(e.target.value)}
           />
         </div>
 
-        <div className="form-group full-width">
-          <label>Purpose</label>
-          <textarea
-            rows={4}
-            value={purpose}
-            onChange={(e) => setPurpose(e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="form-group full-width">
-          <label>Available Time Slot</label>
+        <div className="form-group">
+          <label>Time Slot</label>
           <select
             value={timeSlot}
             onChange={(e) => setTimeSlot(e.target.value)}
-            required
-            disabled={!date || slotsLoading}
           >
-            <option value="">
-              {!date
-                ? "Select date first"
-                : slotsLoading
-                ? "Loading slots..."
-                : availableSlots.length > 0
-                ? "Select a time slot"
-                : "No slots available"}
-            </option>
-
-            {availableSlots.map((slot) => (
-              <option key={slot} value={slot}>
-                {slot}
-              </option>
-            ))}
+            <option value="">Select time slot</option>
+            <option value="10:00 AM - 11:00 AM">10:00 AM - 11:00 AM</option>
+            <option value="11:00 AM - 12:00 PM">11:00 AM - 12:00 PM</option>
+            <option value="1:00 PM - 2:00 PM">1:00 PM - 2:00 PM</option>
+            <option value="2:00 PM - 3:00 PM">2:00 PM - 3:00 PM</option>
+            <option value="4:00 PM - 5:00 PM">4:00 PM - 5:00 PM</option>
           </select>
         </div>
 
         <div className="form-group full-width">
-          <label>Additional Notes</label>
+          <label>Message / Notes</label>
           <textarea
             rows={4}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Add any note for the appointment"
           />
         </div>
 
-        {error && <p className="form-error">{error}</p>}
-
         <div className="form-actions">
-          <button type="submit" className="primary-btn" disabled={loading}>
-            {loading ? "Processing..." : "Confirm Appointment"}
+          <button
+            type="button"
+            className="primary-btn"
+            onClick={handleSubmit}
+            disabled={loading}
+          >
+            {loading ? "Booking..." : "Book Appointment"}
           </button>
         </div>
-      </form>
+      </div>
     </section>
   );
 }

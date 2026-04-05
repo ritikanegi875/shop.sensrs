@@ -6,107 +6,158 @@ type OrderItem = {
   id: number;
   title: string;
   price: number;
-  image: string;
   quantity: number;
 };
 
-type OrderRecord = {
+type Order = {
   _id: string;
-  code: string;
   fullName: string;
   email: string;
   phone: string;
-  address: string;
+  addressLine: string;
   city: string;
   state: string;
   pincode: string;
-  notes: string;
-  totalPrice: number;
-  createdAt: string;
   items: OrderItem[];
+  totalPrice: number;
+  status: string;
+  createdAt: string;
 };
 
+const statusOptions = ["pending", "confirmed", "shipped", "delivered"];
+
 export default function AdminOrdersPage() {
-  const [orders, setOrders] = useState<OrderRecord[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  const fetchOrders = async () => {
+    try {
+      const res = await fetch("/api/orders", {
+        cache: "no-store",
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setOrders(data.orders || []);
+      }
+    } catch (error) {
+      console.error("ADMIN ORDERS FETCH ERROR:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    async function fetchOrders() {
-      try {
-        setLoading(true);
-        setError("");
-
-        const res = await fetch("/api/orders", {
-          method: "GET",
-          cache: "no-store",
-        });
-
-        const data = await res.json();
-
-        console.log("ORDERS API RESPONSE:", data);
-
-        if (!res.ok || !data.success) {
-          setError(data.message || "Failed to fetch orders");
-          return;
-        }
-
-        setOrders(data.orders || []);
-      } catch (err) {
-        console.error("FETCH ORDERS ERROR:", err);
-        setError("Something went wrong while fetching orders");
-      } finally {
-        setLoading(false);
-      }
-    }
-
     fetchOrders();
   }, []);
+
+  const handleStatusChange = async (id: string, status: string) => {
+    try {
+      setUpdatingId(id);
+
+      const res = await fetch(`/api/orders/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setOrders((prev) =>
+          prev.map((order) =>
+            order._id === id ? { ...order, status } : order
+          )
+        );
+      } else {
+        alert(data.message || "Failed to update status");
+      }
+    } catch (error) {
+      console.error("STATUS UPDATE ERROR:", error);
+      alert("Something went wrong");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  if (loading) {
+    return <p className="empty-admin-records">Loading orders...</p>;
+  }
 
   return (
     <section className="admin-records-page">
       <div className="admin-records-header">
-        <h1>Buy Now Records</h1>
-        <p>All database order submissions are listed here.</p>
+        <h1>Orders</h1>
+        <p>Manage customer orders and update order status.</p>
       </div>
 
-      {loading ? (
-        <p className="empty-admin-records">Loading orders...</p>
-      ) : error ? (
-        <p className="empty-admin-records">{error}</p>
-      ) : orders.length === 0 ? (
-        <p className="empty-admin-records">No order records found.</p>
+      {orders.length === 0 ? (
+        <p className="empty-admin-records">No orders found.</p>
       ) : (
         <div className="admin-records-list">
           {orders.map((order) => (
             <div className="admin-record-card" key={order._id}>
               <div className="admin-record-top">
-                <h2>{order.code}</h2>
-                <span className="record-badge">BUY NOW</span>
+                <div>
+                  <h2>Order #{order._id.slice(-6).toUpperCase()}</h2>
+                  <p>{new Date(order.createdAt).toLocaleString("en-IN")}</p>
+                </div>
+
+                <div className="admin-order-status-box">
+                  <span className="record-badge">{order.status}</span>
+
+                  <select
+                    value={order.status || "pending"}
+                    onChange={(e) =>
+                      handleStatusChange(order._id, e.target.value)
+                    }
+                    disabled={updatingId === order._id}
+                    className="admin-status-select"
+                  >
+                    {statusOptions.map((status) => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="admin-record-grid">
-                <p><strong>Name:</strong> {order.fullName}</p>
-                <p><strong>Email:</strong> {order.email}</p>
-                <p><strong>Phone:</strong> {order.phone}</p>
-                <p><strong>City:</strong> {order.city}</p>
-                <p><strong>State:</strong> {order.state}</p>
-                <p><strong>Pincode:</strong> {order.pincode}</p>
-                <p className="full-row"><strong>Address:</strong> {order.address}</p>
-                <p className="full-row"><strong>Notes:</strong> {order.notes || "—"}</p>
-                <p><strong>Total:</strong> ₹{order.totalPrice.toLocaleString("en-IN")}</p>
                 <p>
-                  <strong>Created:</strong>{" "}
-                  {new Date(order.createdAt).toLocaleString("en-IN")}
+                  <strong>Name:</strong> {order.fullName}
+                </p>
+                <p>
+                  <strong>Email:</strong> {order.email}
+                </p>
+                <p>
+                  <strong>Phone:</strong> {order.phone}
+                </p>
+                <p>
+                  <strong>Total:</strong> ₹
+                  {(order.totalPrice || 0).toLocaleString("en-IN")}
+                </p>
+                <p className="full-row">
+                  <strong>Address:</strong> {order.addressLine}, {order.city},{" "}
+                  {order.state} - {order.pincode}
                 </p>
               </div>
 
               <div className="admin-record-items">
                 <h3>Items</h3>
-                {order.items.map((item) => (
-                  <div className="admin-record-item" key={`${order._id}-${item.id}`}>
-                    <span>{item.title} × {item.quantity}</span>
-                    <span>₹{(item.price * item.quantity).toLocaleString("en-IN")}</span>
+
+                {order.items?.map((item, index) => (
+                  <div className="admin-record-item" key={index}>
+                    <span>
+                      {item.title} × {item.quantity}
+                    </span>
+                    <span>
+                      ₹{(item.price * item.quantity).toLocaleString("en-IN")}
+                    </span>
                   </div>
                 ))}
               </div>

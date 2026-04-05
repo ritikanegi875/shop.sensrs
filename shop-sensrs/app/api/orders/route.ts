@@ -3,6 +3,29 @@ import { connectDB } from "@/lib/mongodb";
 import Order from "@/models/Order";
 import { sendMail } from "@/lib/mailer";
 
+export async function GET() {
+  try {
+    await connectDB();
+
+    const orders = await Order.find().sort({ createdAt: -1 });
+
+    return NextResponse.json({
+      success: true,
+      orders,
+    });
+  } catch (error: any) {
+    console.error("GET ORDERS ERROR:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: error?.message || "Failed to fetch orders",
+      },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -53,21 +76,21 @@ export async function POST(req: Request) {
       status: "pending",
     });
 
-    const itemsHtml = items
-      .map(
-        (item: {
-          title: string;
-          quantity: number;
-          price: number;
-        }) =>
-          `<li>${item.title} × ${item.quantity} — ₹${(
-            item.price * item.quantity
-          ).toLocaleString("en-IN")}</li>`
-      )
-      .join("");
-
     try {
       if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+        const itemsHtml = items
+          .map(
+            (item: {
+              title: string;
+              quantity: number;
+              price: number;
+            }) =>
+              `<li>${item.title} × ${item.quantity} — ₹${(
+                item.price * item.quantity
+              ).toLocaleString("en-IN")}</li>`
+          )
+          .join("");
+
         await sendMail({
           to: email,
           subject: "Order Confirmation - Shop.SEnSRS",
@@ -84,25 +107,6 @@ export async function POST(req: Request) {
             <ul>${itemsHtml}</ul>
           `,
         });
-
-        if (process.env.ADMIN_EMAIL) {
-          await sendMail({
-            to: process.env.ADMIN_EMAIL,
-            subject: "New Order Received - Shop.SEnSRS",
-            html: `
-              <h2>New Order Received</h2>
-              <p><strong>Name:</strong> ${fullName}</p>
-              <p><strong>Email:</strong> ${email}</p>
-              <p><strong>Phone:</strong> ${phone}</p>
-              <p><strong>Address:</strong><br/>
-              ${addressLine}<br/>
-              ${city}, ${state} - ${pincode}</p>
-              <p><strong>Total:</strong> ₹${Number(totalPrice).toLocaleString("en-IN")}</p>
-              <h3>Items</h3>
-              <ul>${itemsHtml}</ul>
-            `,
-          });
-        }
       }
     } catch (mailError) {
       console.error("MAIL ERROR:", mailError);
@@ -115,8 +119,6 @@ export async function POST(req: Request) {
     });
   } catch (error: any) {
     console.error("ORDER ERROR FULL:", error);
-    console.error("ORDER ERROR MESSAGE:", error?.message);
-    console.error("ORDER ERROR STACK:", error?.stack);
 
     return NextResponse.json(
       {

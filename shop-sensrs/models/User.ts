@@ -1,5 +1,50 @@
 import { Schema, model, models } from "mongoose";
 
+const AddressSchema = new Schema(
+  {
+    label: {
+      type: String,
+      default: "Home",
+      trim: true,
+    },
+    fullName: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    phone: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    addressLine: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    city: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    state: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    pincode: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    isDefault: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  { _id: true }
+);
+
 const UserSchema = new Schema(
   {
     name: {
@@ -30,6 +75,10 @@ const UserSchema = new Schema(
     resetPasswordExpires: {
       type: Date,
       default: null,
+    },
+    addresses: {
+      type: [AddressSchema],
+      default: [],
     },
   },
   {

@@ -2,96 +2,170 @@
 
 import { useEffect, useState } from "react";
 
-type AppointmentRecord = {
+type Appointment = {
   _id: string;
-  code: string;
+  code?: string;
   fullName: string;
   email: string;
   phone: string;
-  purpose: string;
+  addressLine?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
   date: string;
   timeSlot: string;
-  notes: string;
+  purpose?: string;
+  message?: string;
+  status: string;
   createdAt: string;
 };
 
+const statusOptions = ["pending", "approved", "completed", "cancelled"];
+
 export default function AdminAppointmentsPage() {
-  const [appointments, setAppointments] = useState<AppointmentRecord[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  const fetchAppointments = async () => {
+    try {
+      const res = await fetch("/api/appointments", {
+        cache: "no-store",
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setAppointments(data.appointments || []);
+      }
+    } catch (error) {
+      console.error("ADMIN APPOINTMENTS FETCH ERROR:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    async function fetchAppointments() {
-      try {
-        setLoading(true);
-        setError("");
-
-        const res = await fetch("/api/appointments", {
-          method: "GET",
-          cache: "no-store",
-        });
-
-        const data = await res.json();
-
-        console.log("APPOINTMENTS API RESPONSE:", data);
-
-        if (!res.ok || !data.success) {
-          setError(data.message || "Failed to fetch appointments");
-          return;
-        }
-
-        setAppointments(data.appointments || []);
-      } catch (err) {
-        console.error("FETCH APPOINTMENTS ERROR:", err);
-        setError("Something went wrong while fetching appointments");
-      } finally {
-        setLoading(false);
-      }
-    }
-
     fetchAppointments();
   }, []);
+
+  const handleStatusChange = async (id: string, status: string) => {
+    try {
+      setUpdatingId(id);
+
+      const res = await fetch(`/api/appointments/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setAppointments((prev) =>
+          prev.map((appointment) =>
+            appointment._id === id ? { ...appointment, status } : appointment
+          )
+        );
+      } else {
+        alert(data.message || "Failed to update appointment status");
+      }
+    } catch (error) {
+      console.error("APPOINTMENT STATUS UPDATE ERROR:", error);
+      alert("Something went wrong");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  if (loading) {
+    return <p className="empty-admin-records">Loading appointments...</p>;
+  }
 
   return (
     <section className="admin-records-page">
       <div className="admin-records-header">
-        <h1>Appointment Records</h1>
-        <p>All database appointment submissions are listed here.</p>
+        <h1>Appointments</h1>
+        <p>Manage appointment requests and update booking status.</p>
       </div>
 
-      {loading ? (
-        <p className="empty-admin-records">Loading appointments...</p>
-      ) : error ? (
-        <p className="empty-admin-records">{error}</p>
-      ) : appointments.length === 0 ? (
-        <p className="empty-admin-records">No appointment records found.</p>
+      {appointments.length === 0 ? (
+        <p className="empty-admin-records">No appointments found.</p>
       ) : (
         <div className="admin-records-list">
           {appointments.map((appointment) => (
             <div className="admin-record-card" key={appointment._id}>
               <div className="admin-record-top">
-                <h2>{appointment.code}</h2>
-                <span className="record-badge appointment-badge">
-                  APPOINTMENT
-                </span>
+                <div>
+                  <h2>
+                    Appointment{" "}
+                    {appointment.code
+                      ? `#${appointment.code}`
+                      : `#${appointment._id.slice(-6).toUpperCase()}`}
+                  </h2>
+                  <p>
+                    {new Date(appointment.createdAt).toLocaleString("en-IN")}
+                  </p>
+                </div>
+
+                <div className="admin-order-status-box">
+                  <span className="record-badge appointment-badge">
+                    {appointment.status || "pending"}
+                  </span>
+
+                  <select
+                    value={appointment.status || "pending"}
+                    onChange={(e) =>
+                      handleStatusChange(appointment._id, e.target.value)
+                    }
+                    disabled={updatingId === appointment._id}
+                    className="admin-status-select"
+                  >
+                    {statusOptions.map((status) => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="admin-record-grid">
-                <p><strong>Name:</strong> {appointment.fullName}</p>
-                <p><strong>Email:</strong> {appointment.email}</p>
-                <p><strong>Phone:</strong> {appointment.phone}</p>
-                <p><strong>Date:</strong> {appointment.date}</p>
-                <p><strong>Time Slot:</strong> {appointment.timeSlot}</p>
                 <p>
-                  <strong>Created:</strong>{" "}
-                  {new Date(appointment.createdAt).toLocaleString("en-IN")}
+                  <strong>Name:</strong> {appointment.fullName}
                 </p>
-                <p className="full-row">
-                  <strong>Purpose:</strong> {appointment.purpose}
+                <p>
+                  <strong>Email:</strong> {appointment.email}
                 </p>
-                <p className="full-row">
-                  <strong>Notes:</strong> {appointment.notes || "—"}
+                <p>
+                  <strong>Phone:</strong> {appointment.phone}
                 </p>
+                <p>
+                  <strong>Date:</strong> {appointment.date}
+                </p>
+                <p>
+                  <strong>Time Slot:</strong> {appointment.timeSlot}
+                </p>
+                <p>
+                  <strong>Purpose:</strong>{" "}
+                  {appointment.purpose || appointment.message || "General Appointment"}
+                </p>
+
+                {(appointment.addressLine ||
+                  appointment.city ||
+                  appointment.state ||
+                  appointment.pincode) && (
+                  <p className="full-row">
+                    <strong>Address:</strong> {appointment.addressLine || ""}
+                    {appointment.addressLine ? ", " : ""}
+                    {appointment.city || ""}
+                    {appointment.city ? ", " : ""}
+                    {appointment.state || ""}{" "}
+                    {appointment.pincode ? `- ${appointment.pincode}` : ""}
+                  </p>
+                )}
               </div>
             </div>
           ))}

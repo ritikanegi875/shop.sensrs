@@ -1,4 +1,4 @@
-import mongoose, { Schema, model, models } from "mongoose";
+import mongoose, { Schema, models, model } from "mongoose";
 
 const AppointmentSchema = new Schema(
   {
@@ -6,10 +6,6 @@ const AppointmentSchema = new Schema(
       type: String,
       required: true,
       unique: true,
-    },
-    type: {
-      type: String,
-      default: "BOOK_APPOINTMENT",
     },
     fullName: {
       type: String,
@@ -20,13 +16,29 @@ const AppointmentSchema = new Schema(
       type: String,
       required: true,
       trim: true,
+      lowercase: true,
     },
     phone: {
       type: String,
       required: true,
       trim: true,
     },
-    purpose: {
+    addressLine: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    city: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    state: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    pincode: {
       type: String,
       required: true,
       trim: true,
@@ -39,18 +51,26 @@ const AppointmentSchema = new Schema(
       type: String,
       required: true,
     },
-    notes: {
+    purpose: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    message: {
       type: String,
       default: "",
       trim: true,
+    },
+    status: {
+      type: String,
+      enum: ["pending", "approved", "completed", "cancelled"],
+      default: "pending",
     },
   },
   {
     timestamps: true,
   }
 );
-
-AppointmentSchema.index({ date: 1, timeSlot: 1 }, { unique: true });
 
 const Appointment =
   models.Appointment || model("Appointment", AppointmentSchema);

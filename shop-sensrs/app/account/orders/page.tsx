@@ -85,9 +85,21 @@ export default function AccountOrdersPage() {
                   <p>{new Date(order.createdAt).toLocaleString("en-IN")}</p>
                 </div>
 
-                <span className="record-badge">
-                  {order.status || "pending"}
-                </span>
+                <span
+                className={`record-badge ${
+    order.status === "delivered"
+      ? "status-delivered"
+      : order.status === "shipped"
+      ? "status-shipped"
+      : order.status === "confirmed"
+      ? "status-confirmed"
+      : order.status === "cancelled"
+      ? "status-cancelled"
+      : "status-pending"
+  }`}
+>
+  {order.status || "pending"}
+</span>
               </div>
 
               <div className="account-order-grid">

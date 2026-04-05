@@ -1,31 +1,86 @@
-import mongoose from "mongoose";
+import mongoose, { Schema, models, model } from "mongoose";
 
-const OrderSchema = new mongoose.Schema(
+const OrderItemSchema = new Schema(
   {
-    fullName: { type: String, required: true },
-    email: { type: String, required: true },
-    phone: { type: String, required: true },
-
-    addressLine: { type: String, required: true },
-    city: { type: String, required: true },
-    state: { type: String, required: true },
-    pincode: { type: String, required: true },
-
-    items: [
-      {
-        id: Number,
-        title: String,
-        price: Number,
-        quantity: Number,
-      },
-    ],
-
-    totalPrice: { type: Number, required: true },
-
-    status: { type: String, default: "pending" },
+    id: {
+      type: Number,
+      required: true,
+    },
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    price: {
+      type: Number,
+      required: true,
+    },
+    quantity: {
+      type: Number,
+      required: true,
+    },
   },
-  { timestamps: true }
+  { _id: false }
 );
 
-export default mongoose.models.Order ||
-  mongoose.model("Order", OrderSchema);
+const OrderSchema = new Schema(
+  {
+    fullName: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    email: {
+      type: String,
+      required: true,
+      trim: true,
+      lowercase: true,
+    },
+    phone: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    addressLine: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    city: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    state: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    pincode: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    items: {
+      type: [OrderItemSchema],
+      required: true,
+      default: [],
+    },
+    totalPrice: {
+      type: Number,
+      required: true,
+    },
+    status: {
+      type: String,
+      enum: ["pending", "confirmed", "shipped", "delivered", "cancelled"],
+      default: "pending",
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+const Order = models.Order || model("Order", OrderSchema);
+
+export default Order;

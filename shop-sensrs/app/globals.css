@@ -2200,3 +2200,22 @@ img {
   font-size: 15px;
   outline: none;
 }
+.status-pending {
+  background-color: #e11d48;
+}
+
+.status-confirmed {
+  background-color: #2563eb;
+}
+
+.status-shipped {
+  background-color: #7c3aed;
+}
+
+.status-delivered {
+  background-color: #16a34a;
+}
+
+.status-cancelled {
+  background-color: #dc2626;
+}

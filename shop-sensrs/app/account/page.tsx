@@ -233,6 +233,9 @@ export default function AccountPage() {
         </div>
 
         <div className="account-actions">
+          <Link href="/account/appointments" className="secondary-btn">
+            View Appointments
+          </Link>
           <Link href="/account/orders" className="primary-btn">
             View Order History
           </Link>

@@ -2,113 +2,126 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Order from "@/models/Order";
 import { sendMail } from "@/lib/mailer";
-import {
-  getBuyNowAdminEmail,
-  getBuyNowUserEmail,
-} from "@/lib/email-templates";
-
-export async function GET() {
-  try {
-    await connectDB();
-
-    const orders = await Order.find().sort({ createdAt: -1 });
-
-    return NextResponse.json({
-      success: true,
-      orders,
-    });
-  } catch (error) {
-    console.error("GET ORDERS ERROR:", error);
-
-    return NextResponse.json(
-      { success: false, message: "Failed to fetch orders" },
-      { status: 500 }
-    );
-  }
-}
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
 
+    const {
+      fullName,
+      email,
+      phone,
+      addressLine,
+      city,
+      state,
+      pincode,
+      items,
+      totalPrice,
+    } = body;
+
     if (
-      !body.fullName ||
-      !body.email ||
-      !body.phone ||
-      !body.address ||
-      !body.city ||
-      !body.state ||
-      !body.pincode ||
-      !body.items ||
-      !Array.isArray(body.items) ||
-      body.items.length === 0
+      !fullName ||
+      !email ||
+      !phone ||
+      !addressLine ||
+      !city ||
+      !state ||
+      !pincode ||
+      !items ||
+      !Array.isArray(items) ||
+      items.length === 0 ||
+      !totalPrice
     ) {
       return NextResponse.json(
-        { success: false, message: "Missing required order fields" },
+        { success: false, message: "Missing required fields" },
         { status: 400 }
       );
     }
 
     await connectDB();
 
-    const existingOrder = await Order.findOne({ code: body.code });
-
-    if (existingOrder) {
-      return NextResponse.json(
-        { success: false, message: "Order code already exists" },
-        { status: 409 }
-      );
-    }
-
-    const createdOrder = await Order.create({
-      code: body.code,
-      type: "BUY_NOW",
-      fullName: body.fullName,
-      email: body.email,
-      phone: body.phone,
-      address: body.address,
-      city: body.city,
-      state: body.state,
-      pincode: body.pincode,
-      notes: body.notes || "",
-      items: body.items,
-      totalPrice: body.totalPrice,
+    const newOrder = await Order.create({
+      fullName,
+      email,
+      phone,
+      addressLine,
+      city,
+      state,
+      pincode,
+      items,
+      totalPrice,
+      status: "pending",
     });
 
+    const itemsHtml = items
+      .map(
+        (item: {
+          title: string;
+          quantity: number;
+          price: number;
+        }) =>
+          `<li>${item.title} × ${item.quantity} — ₹${(
+            item.price * item.quantity
+          ).toLocaleString("en-IN")}</li>`
+      )
+      .join("");
+
     try {
-      const userEmail = getBuyNowUserEmail(body);
-      const adminEmail = getBuyNowAdminEmail(body);
+      if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+        await sendMail({
+          to: email,
+          subject: "Order Confirmation - Shop.SEnSRS",
+          html: `
+            <h2>Order Confirmed</h2>
+            <p>Hello ${fullName},</p>
+            <p>Your order has been placed successfully.</p>
+            <p><strong>Total:</strong> ₹${Number(totalPrice).toLocaleString("en-IN")}</p>
+            <p><strong>Phone:</strong> ${phone}</p>
+            <p><strong>Delivery Address:</strong><br/>
+            ${addressLine}<br/>
+            ${city}, ${state} - ${pincode}</p>
+            <h3>Items</h3>
+            <ul>${itemsHtml}</ul>
+          `,
+        });
 
-      await sendMail({
-        to: body.email,
-        subject: userEmail.subject,
-        html: userEmail.html,
-      });
-
-      await sendMail({
-        to: process.env.ADMIN_EMAIL || "admin@example.com",
-        subject: adminEmail.subject,
-        html: adminEmail.html,
-      });
+        if (process.env.ADMIN_EMAIL) {
+          await sendMail({
+            to: process.env.ADMIN_EMAIL,
+            subject: "New Order Received - Shop.SEnSRS",
+            html: `
+              <h2>New Order Received</h2>
+              <p><strong>Name:</strong> ${fullName}</p>
+              <p><strong>Email:</strong> ${email}</p>
+              <p><strong>Phone:</strong> ${phone}</p>
+              <p><strong>Address:</strong><br/>
+              ${addressLine}<br/>
+              ${city}, ${state} - ${pincode}</p>
+              <p><strong>Total:</strong> ₹${Number(totalPrice).toLocaleString("en-IN")}</p>
+              <h3>Items</h3>
+              <ul>${itemsHtml}</ul>
+            `,
+          });
+        }
+      }
     } catch (mailError) {
       console.error("MAIL ERROR:", mailError);
     }
 
     return NextResponse.json({
       success: true,
-      message: "Order saved successfully",
-      code: createdOrder.code,
-      orderId: createdOrder._id,
+      message: "Order placed successfully",
+      order: newOrder,
     });
   } catch (error: any) {
-    console.error("ORDER API ERROR FULL:", error);
-    console.error("ORDER API ERROR MESSAGE:", error?.message);
-    console.error("ORDER API ERROR STACK:", error?.stack);
+    console.error("ORDER ERROR FULL:", error);
+    console.error("ORDER ERROR MESSAGE:", error?.message);
+    console.error("ORDER ERROR STACK:", error?.stack);
 
     return NextResponse.json(
       {
         success: false,
-        message: error?.message || "Server error while saving order",
+        message: error?.message || "Server error",
       },
       { status: 500 }
     );

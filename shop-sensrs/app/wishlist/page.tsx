@@ -3,56 +3,52 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useWishlist } from "@/context/WishlistContext";
-import { useCart } from "@/context/CartContext";
 
 export default function WishlistPage() {
-  const { wishlistItems, removeFromWishlist } = useWishlist();
-  const { addToCart } = useCart();
+  const { wishlist, removeFromWishlist } = useWishlist();
 
   return (
-    <section className="wishlist-page">
-      <h1>Your Wishlist</h1>
+    <section className="products-page">
+      <div className="products-page-header">
+        <h1>My Wishlist</h1>
+        <p>Your saved products appear here.</p>
+      </div>
 
-      {wishlistItems.length === 0 ? (
-        <p className="empty-cart">Your wishlist is empty.</p>
+      {wishlist.length === 0 ? (
+        <p className="empty-admin-records">No items in wishlist.</p>
       ) : (
-        <div className="wishlist-grid">
-          {wishlistItems.map((item) => (
-            <div className="product-card" key={item.id}>
+        <div className="products-grid">
+          {wishlist.map((item) => (
+            <div key={String(item.id)} className="product-card">
               <Link href={`/products/${item.id}`}>
                 <div className="product-image-box">
-                  <Image src={item.image} alt={item.title} width={220} height={220} />
+                  <Image
+                    src={item.image}
+                    alt={item.title}
+                    width={260}
+                    height={220}
+                  />
                 </div>
-
-                {item.category && (
-                  <span className="product-category">{item.category}</span>
-                )}
-
-                <h3>{item.title}</h3>
-                <p>₹{item.price.toLocaleString("en-IN")}</p>
               </Link>
 
-              <div className="wishlist-actions">
-                <button
-                  onClick={() =>
-                    addToCart({
-                      id: item.id,
-                      title: item.title,
-                      price: item.price,
-                      image: item.image,
-                    })
-                  }
-                >
-                  Add to Cart
-                </button>
+              <span className="product-category">Wishlist</span>
 
-                <button
-                  className="remove-btn"
-                  onClick={() => removeFromWishlist(item.id)}
-                >
-                  Remove
-                </button>
-              </div>
+              <Link
+                href={`/products/${item.id}`}
+                className="product-card-title-link"
+              >
+                <h3>{item.title}</h3>
+              </Link>
+
+              <p>₹{item.price.toLocaleString("en-IN")}</p>
+
+              <button
+                type="button"
+                className="delete-btn"
+                onClick={() => removeFromWishlist(item.id)}
+              >
+                Remove
+              </button>
             </div>
           ))}
         </div>

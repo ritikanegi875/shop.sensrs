@@ -22,6 +22,7 @@ type CartContextType = {
   removeFromCart: (id: number) => void;
   increaseQty: (id: number) => void;
   decreaseQty: (id: number) => void;
+  clearCart: () => void;
   cartCount: number;
 };
 
@@ -85,6 +86,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     );
   };
 
+  const clearCart = () => {
+    setCartItems([]);
+    localStorage.removeItem("shop-sensrs-cart");
+  };
+
   const cartCount = cartItems.reduce((total, item) => total + item.quantity, 0);
 
   return (
@@ -95,6 +101,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         removeFromCart,
         increaseQty,
         decreaseQty,
+        clearCart,
         cartCount,
       }}
     >

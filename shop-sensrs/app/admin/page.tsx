@@ -132,7 +132,7 @@ export default function AdminPage() {
                         <p>{order.fullName}</p>
                       </div>
                       <div>
-                        <strong>₹{order.totalPrice.toLocaleString("en-IN")}</strong>
+                        <strong>₹{(order.totalPrice || 0).toLocaleString("en-IN")}</strong>
                       </div>
                     </div>
                   ))}

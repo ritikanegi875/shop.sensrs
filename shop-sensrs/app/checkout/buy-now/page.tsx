@@ -1,203 +1,197 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useCart } from "@/context/CartContext";
-import { generateBuyNowCode } from "@/lib/checkout-storage";
+import { useRouter } from "next/navigation";
 
 export default function BuyNowPage() {
+  const { cartItems, clearCart } = useCart();
   const router = useRouter();
-  const { cartItems } = useCart();
 
   const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState("test@gmail.com");
   const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
+  const [addressLine, setAddressLine] = useState("");
   const [city, setCity] = useState("");
   const [stateName, setStateName] = useState("");
   const [pincode, setPincode] = useState("");
-  const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const totalPrice = useMemo(() => {
-    return cartItems.reduce(
-      (sum, item) => sum + item.price * item.quantity,
-      0
-    );
-  }, [cartItems]);
+  const totalPrice = cartItems.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-
-    if (cartItems.length === 0) {
-      alert("Cart is empty");
+  const handleOrder = async () => {
+    if (
+      !fullName ||
+      !email ||
+      !phone ||
+      !addressLine ||
+      !city ||
+      !stateName ||
+      !pincode
+    ) {
+      alert("Please fill all fields");
       return;
     }
 
-    setLoading(true);
-
-    const code = generateBuyNowCode();
-
-    const payload = {
-      type: "BUY_NOW",
-      code,
-      fullName,
-      email,
-      phone,
-      address,
-      city,
-      state: stateName,
-      pincode,
-      notes,
-      items: cartItems,
-      totalPrice,
-      createdAt: new Date().toISOString(),
-    };
+    if (cartItems.length === 0) {
+      alert("Your cart is empty");
+      return;
+    }
 
     try {
+      setLoading(true);
+
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          fullName,
+          email,
+          phone,
+          addressLine,
+          city,
+          state: stateName,
+          pincode,
+          items: cartItems,
+          totalPrice,
+        }),
       });
 
       const data = await res.json();
 
-      if (!data.success) {
-        alert(data.message || "Something went wrong");
-        setLoading(false);
-        return;
+      if (data.success) {
+        alert("Order placed successfully!");
+        clearCart();
+        router.push("/");
+      } else {
+        alert(data.message || "Order failed");
       }
-
-      router.push(`/checkout/success?type=buy-now&code=${code}`);
-    } catch (err) {
-      alert("Server error. Try again.");
+    } catch (error) {
+      console.error(error);
+      alert("Something went wrong");
+    } finally {
       setLoading(false);
     }
   };
 
   return (
-    <section className="checkout-form-page">
-      <div className="checkout-form-header">
-        <h1>Buy Now</h1>
-        <p>Fill in your order details.</p>
-      </div>
+    <section className="buy-now-page">
+      <div className="buy-now-card">
+        <h1>Checkout</h1>
+        <p className="buy-now-login-text">Logged in as: {email}</p>
 
-      <div className="checkout-layout">
-        <form className="checkout-form" onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Full Name</label>
-            <input
-              type="text"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              required
-            />
-          </div>
+        {cartItems.length === 0 ? (
+          <p className="empty-admin-records">Your cart is empty.</p>
+        ) : (
+          <>
+            <div className="buy-now-summary">
+              <h2>Order Summary</h2>
+              <div className="checkout-items">
+                {cartItems.map((item, index) => (
+                  <div key={`${item.id}-${index}`} className="checkout-item">
+                    <div>
+                      <strong>{item.title}</strong>
+                      <p>Qty: {item.quantity}</p>
+                    </div>
+                    <span>
+                      ₹{(item.price * item.quantity).toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                ))}
+              </div>
 
-          <div className="form-group">
-            <label>Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Phone</label>
-            <input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="form-group full-width">
-            <label>Address</label>
-            <textarea
-              rows={4}
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label>City</label>
-            <input
-              type="text"
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label>State</label>
-            <input
-              type="text"
-              value={stateName}
-              onChange={(e) => setStateName(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Pincode</label>
-            <input
-              type="text"
-              value={pincode}
-              onChange={(e) => setPincode(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="form-group full-width">
-            <label>Additional Notes</label>
-            <textarea
-              rows={4}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            />
-          </div>
-
-          <div className="form-actions">
-            <button type="submit" className="primary-btn" disabled={loading}>
-              {loading ? "Processing..." : "Confirm Buy Now"}
-            </button>
-          </div>
-        </form>
-
-        <div className="checkout-summary">
-          <h2>Order Summary</h2>
-
-          {cartItems.length === 0 ? (
-            <p className="muted-text">Your cart is empty.</p>
-          ) : (
-            <div className="summary-list">
-              {cartItems.map((item) => (
-                <div className="summary-item" key={item.id}>
-                  <span>
-                    {item.title} × {item.quantity}
-                  </span>
-                  <span>
-                    ₹{(item.price * item.quantity).toLocaleString("en-IN")}
-                  </span>
-                </div>
-              ))}
+              <h3 className="buy-now-total">
+                Total: ₹{totalPrice.toLocaleString("en-IN")}
+              </h3>
             </div>
-          )}
 
-          <div className="summary-total">
-            <strong>Total:</strong>
-            <strong>₹{totalPrice.toLocaleString("en-IN")}</strong>
-          </div>
-        </div>
+            <div className="buy-now-form">
+              <div className="form-group">
+                <label>Full Name</label>
+                <input
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Enter your full name"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Email Address</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Phone Number</label>
+                <input
+                  type="text"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="Enter phone number"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Address Line</label>
+                <textarea
+                  rows={4}
+                  value={addressLine}
+                  onChange={(e) => setAddressLine(e.target.value)}
+                  placeholder="House no, street, area, landmark"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>City</label>
+                <input
+                  type="text"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder="Enter city"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>State</label>
+                <input
+                  type="text"
+                  value={stateName}
+                  onChange={(e) => setStateName(e.target.value)}
+                  placeholder="Enter state"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Pincode</label>
+                <input
+                  type="text"
+                  value={pincode}
+                  onChange={(e) => setPincode(e.target.value)}
+                  placeholder="Enter pincode"
+                />
+              </div>
+
+              <button
+                type="button"
+                className="primary-btn buy-now-btn"
+                onClick={handleOrder}
+                disabled={loading}
+              >
+                {loading ? "Placing Order..." : "Place Order"}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </section>
   );

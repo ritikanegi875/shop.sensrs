@@ -9,18 +9,17 @@ import {
 } from "react";
 
 type WishlistItem = {
-  id: number;
+  id: string | number;
   title: string;
   price: number;
   image: string;
-  category?: string;
 };
 
 type WishlistContextType = {
-  wishlistItems: WishlistItem[];
+  wishlist: WishlistItem[];
   addToWishlist: (item: WishlistItem) => void;
-  removeFromWishlist: (id: number) => void;
-  isInWishlist: (id: number) => boolean;
+  removeFromWishlist: (id: string | number) => void;
+  isInWishlist: (id: string | number) => boolean;
   wishlistCount: number;
 };
 
@@ -29,52 +28,45 @@ const WishlistContext = createContext<WishlistContextType | undefined>(
 );
 
 export function WishlistProvider({ children }: { children: ReactNode }) {
-  const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
+  const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     const savedWishlist = localStorage.getItem("shop-sensrs-wishlist");
-
     if (savedWishlist) {
-      setWishlistItems(JSON.parse(savedWishlist));
+      setWishlist(JSON.parse(savedWishlist));
     }
-
     setIsLoaded(true);
   }, []);
 
   useEffect(() => {
     if (isLoaded) {
-      localStorage.setItem(
-        "shop-sensrs-wishlist",
-        JSON.stringify(wishlistItems)
-      );
+      localStorage.setItem("shop-sensrs-wishlist", JSON.stringify(wishlist));
     }
-  }, [wishlistItems, isLoaded]);
+  }, [wishlist, isLoaded]);
 
   const addToWishlist = (item: WishlistItem) => {
-    setWishlistItems((prev) => {
+    setWishlist((prev) => {
       const exists = prev.find((wishlistItem) => wishlistItem.id === item.id);
       if (exists) return prev;
       return [...prev, item];
     });
   };
 
-  const removeFromWishlist = (id: number) => {
-    setWishlistItems((prev) =>
-      prev.filter((wishlistItem) => wishlistItem.id !== id)
-    );
+  const removeFromWishlist = (id: string | number) => {
+    setWishlist((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const isInWishlist = (id: number) => {
-    return wishlistItems.some((item) => item.id === id);
+  const isInWishlist = (id: string | number) => {
+    return wishlist.some((item) => item.id === id);
   };
 
-  const wishlistCount = wishlistItems.length;
+  const wishlistCount = wishlist.length;
 
   return (
     <WishlistContext.Provider
       value={{
-        wishlistItems,
+        wishlist,
         addToWishlist,
         removeFromWishlist,
         isInWishlist,

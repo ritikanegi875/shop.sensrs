@@ -14,12 +14,15 @@ type Product = {
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -42,6 +45,17 @@ export default function AdminProductsPage() {
     fetchProducts();
   }, []);
 
+  const resetForm = () => {
+    setEditingId(null);
+    setTitle("");
+    setPrice("");
+    setCategory("");
+    setDescription("");
+    setSelectedFile(null);
+    setPreviewUrl("");
+    setMessage("");
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
     setSelectedFile(file);
@@ -54,9 +68,25 @@ export default function AdminProductsPage() {
     }
   };
 
-  const handleAddProduct = async () => {
-    if (!title || !price || !category || !description || !selectedFile) {
-      setMessage("Please fill all fields and select an image.");
+  const handleEditClick = (product: Product) => {
+    setEditingId(product._id);
+    setTitle(product.title);
+    setPrice(String(product.price));
+    setCategory(product.category);
+    setDescription(product.description);
+    setPreviewUrl(product.image);
+    setSelectedFile(null);
+    setMessage("");
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
+
+  const handleSaveProduct = async () => {
+    if (!title || !price || !category || !description) {
+      setMessage("Please fill all fields.");
       return;
     }
 
@@ -64,55 +94,92 @@ export default function AdminProductsPage() {
       setLoading(true);
       setMessage("");
 
-      const formData = new FormData();
-      formData.append("file", selectedFile);
+      let finalImageUrl = previewUrl;
+      let finalPublicId = "";
 
-      const uploadRes = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
+      if (selectedFile) {
+        const formData = new FormData();
+        formData.append("file", selectedFile);
 
-      const uploadData = await uploadRes.json();
+        const uploadRes = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
 
-      if (!uploadData.success) {
-        setMessage(uploadData.message || "Image upload failed");
-        setLoading(false);
-        return;
+        const uploadData = await uploadRes.json();
+
+        if (!uploadData.success) {
+          setMessage(uploadData.message || "Image upload failed");
+          setLoading(false);
+          return;
+        }
+
+        finalImageUrl = uploadData.imageUrl;
+        finalPublicId = uploadData.publicId || "";
       }
 
-      const saveRes = await fetch("/api/products", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title,
-          price: Number(price),
-          image: uploadData.imageUrl,
-          publicId: uploadData.publicId,
-          category,
-          description,
-        }),
-      });
+      if (editingId) {
+        const updateRes = await fetch(`/api/products/${editingId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            title,
+            price: Number(price),
+            image: finalImageUrl,
+            category,
+            description,
+            publicId: finalPublicId,
+          }),
+        });
 
-      const saveData = await saveRes.json();
+        const updateData = await updateRes.json();
 
-      if (!saveData.success) {
-        setMessage(saveData.message || "Failed to create product");
-        setLoading(false);
-        return;
+        if (!updateData.success) {
+          setMessage(updateData.message || "Failed to update product");
+          setLoading(false);
+          return;
+        }
+
+        setMessage("Product updated successfully");
+      } else {
+        if (!finalImageUrl) {
+          setMessage("Please select an image.");
+          setLoading(false);
+          return;
+        }
+
+        const saveRes = await fetch("/api/products", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            title,
+            price: Number(price),
+            image: finalImageUrl,
+            publicId: finalPublicId,
+            category,
+            description,
+          }),
+        });
+
+        const saveData = await saveRes.json();
+
+        if (!saveData.success) {
+          setMessage(saveData.message || "Failed to create product");
+          setLoading(false);
+          return;
+        }
+
+        setMessage("Product added successfully");
       }
 
-      setMessage("Product added successfully");
-      setTitle("");
-      setPrice("");
-      setCategory("");
-      setDescription("");
-      setSelectedFile(null);
-      setPreviewUrl("");
       await fetchProducts();
+      resetForm();
     } catch (error) {
-      console.error("ADD PRODUCT ERROR:", error);
+      console.error("SAVE PRODUCT ERROR:", error);
       setMessage("Something went wrong");
     } finally {
       setLoading(false);
@@ -128,6 +195,9 @@ export default function AdminProductsPage() {
       const data = await res.json();
 
       if (data.success) {
+        if (editingId === id) {
+          resetForm();
+        }
         await fetchProducts();
       }
     } catch (error) {
@@ -139,7 +209,7 @@ export default function AdminProductsPage() {
     <section className="admin-products-page">
       <div className="admin-products-header">
         <h1>Manage Products</h1>
-        <p>Add products from device and manage product inventory.</p>
+        <p>Add, edit, and delete product listings from one place.</p>
       </div>
 
       <div className="admin-product-form-box">
@@ -159,7 +229,7 @@ export default function AdminProductsPage() {
             type="number"
             value={price}
             onChange={(e) => setPrice(e.target.value)}
-            placeholder="Enter product price"
+            placeholder="Enter price"
           />
         </div>
 
@@ -184,28 +254,48 @@ export default function AdminProductsPage() {
         </div>
 
         <div className="form-group full-width">
-          <label>Upload Product Image</label>
+          <label>
+            {editingId ? "Replace Product Image (optional)" : "Upload Product Image"}
+          </label>
           <input type="file" accept="image/*" onChange={handleFileChange} />
         </div>
 
         {previewUrl && (
           <img
             src={previewUrl}
-            alt="Product preview"
+            alt="Preview"
             className="admin-banner-preview"
           />
         )}
 
         {message && <p className="auth-message">{message}</p>}
 
-        <button
-          type="button"
-          className="primary-btn"
-          onClick={handleAddProduct}
-          disabled={loading}
-        >
-          {loading ? "Saving..." : "Add Product"}
-        </button>
+        <div className="detail-actions">
+          <button
+            type="button"
+            className="primary-btn"
+            onClick={handleSaveProduct}
+            disabled={loading}
+          >
+            {loading
+              ? editingId
+                ? "Updating..."
+                : "Saving..."
+              : editingId
+              ? "Update Product"
+              : "Add Product"}
+          </button>
+
+          {editingId && (
+            <button
+              type="button"
+              className="secondary-btn"
+              onClick={resetForm}
+            >
+              Cancel Edit
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="admin-product-grid">
@@ -222,13 +312,24 @@ export default function AdminProductsPage() {
               <h3>{product.title}</h3>
               <p>{product.category}</p>
               <strong>₹{product.price.toLocaleString("en-IN")}</strong>
-              <button
-                type="button"
-                className="delete-btn"
-                onClick={() => handleDeleteProduct(product._id)}
-              >
-                Delete
-              </button>
+
+              <div className="detail-actions admin-product-actions">
+                <button
+                  type="button"
+                  className="primary-btn"
+                  onClick={() => handleEditClick(product)}
+                >
+                  Edit
+                </button>
+
+                <button
+                  type="button"
+                  className="delete-btn"
+                  onClick={() => handleDeleteProduct(product._id)}
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           ))
         )}

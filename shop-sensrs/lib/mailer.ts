@@ -15,17 +15,12 @@ const transporter = nodemailer.createTransport({
 });
 
 export async function sendMail({ to, subject, html }: MailParams) {
-  try {
-    await transporter.sendMail({
-      from: `"Shop.SEnSRS" <${process.env.EMAIL_USER}>`,
-      to,
-      subject,
-      html,
-    });
+  await transporter.sendMail({
+    from: `"Shop.SEnSRS" <${process.env.EMAIL_USER}>`,
+    to,
+    subject,
+    html,
+  });
 
-    return { success: true };
-  } catch (error) {
-    console.error("Email Error:", error);
-    return { success: false };
-  }
+  return { success: true };
 }

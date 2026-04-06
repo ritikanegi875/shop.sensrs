@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type Appointment = {
   _id: string;
@@ -27,6 +27,9 @@ export default function AdminAppointmentsPage() {
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+
   const fetchAppointments = async () => {
     try {
       const res = await fetch("/api/appointments", {
@@ -39,7 +42,7 @@ export default function AdminAppointmentsPage() {
         setAppointments(data.appointments || []);
       }
     } catch (error) {
-      console.error("ADMIN APPOINTMENTS FETCH ERROR:", error);
+      console.error("ADMIN APPOINTMENTS ERROR:", error);
     } finally {
       setLoading(false);
     }
@@ -65,20 +68,38 @@ export default function AdminAppointmentsPage() {
 
       if (data.success) {
         setAppointments((prev) =>
-          prev.map((appointment) =>
-            appointment._id === id ? { ...appointment, status } : appointment
+          prev.map((a) =>
+            a._id === id ? { ...a, status } : a
           )
         );
       } else {
-        alert(data.message || "Failed to update appointment status");
+        alert(data.message || "Failed to update");
       }
     } catch (error) {
-      console.error("APPOINTMENT STATUS UPDATE ERROR:", error);
+      console.error("APPOINTMENT UPDATE ERROR:", error);
       alert("Something went wrong");
     } finally {
       setUpdatingId(null);
     }
   };
+
+  const filteredAppointments = useMemo(() => {
+    const q = search.toLowerCase().trim();
+
+    return appointments.filter((a) => {
+      const matchesStatus =
+        statusFilter === "all" ? true : a.status === statusFilter;
+
+      const matchesSearch =
+        !q ||
+        a.fullName?.toLowerCase().includes(q) ||
+        a.email?.toLowerCase().includes(q) ||
+        a.code?.toLowerCase().includes(q) ||
+        a._id.slice(-6).toLowerCase().includes(q);
+
+      return matchesStatus && matchesSearch;
+    });
+  }, [appointments, search, statusFilter]);
 
   if (loading) {
     return <p className="empty-admin-records">Loading appointments...</p>;
@@ -88,44 +109,75 @@ export default function AdminAppointmentsPage() {
     <section className="admin-records-page">
       <div className="admin-records-header">
         <h1>Appointments</h1>
-        <p>Manage appointment requests and update booking status.</p>
+        <p>Search, filter and manage appointment requests.</p>
       </div>
 
-      {appointments.length === 0 ? (
+      <div className="admin-filters-bar">
+        <input
+          type="text"
+          placeholder="Search by name, email, or code"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="admin-filter-input"
+        />
+
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="admin-filter-select"
+        >
+          <option value="all">All Status</option>
+          {statusOptions.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {filteredAppointments.length === 0 ? (
         <p className="empty-admin-records">No appointments found.</p>
       ) : (
         <div className="admin-records-list">
-          {appointments.map((appointment) => (
-            <div className="admin-record-card" key={appointment._id}>
+          {filteredAppointments.map((a) => (
+            <div className="admin-record-card" key={a._id}>
               <div className="admin-record-top">
                 <div>
                   <h2>
                     Appointment{" "}
-                    {appointment.code
-                      ? `#${appointment.code}`
-                      : `#${appointment._id.slice(-6).toUpperCase()}`}
+                    {a.code
+                      ? `#${a.code}`
+                      : `#${a._id.slice(-6).toUpperCase()}`}
                   </h2>
-                  <p>
-                    {new Date(appointment.createdAt).toLocaleString("en-IN")}
-                  </p>
+                  <p>{new Date(a.createdAt).toLocaleString("en-IN")}</p>
                 </div>
 
                 <div className="admin-order-status-box">
-                  <span className="record-badge appointment-badge">
-                    {appointment.status || "pending"}
+                  <span
+                    className={`record-badge ${
+                      a.status === "completed"
+                        ? "status-delivered"
+                        : a.status === "approved"
+                        ? "status-confirmed"
+                        : a.status === "cancelled"
+                        ? "status-cancelled"
+                        : "status-pending"
+                    }`}
+                  >
+                    {a.status || "pending"}
                   </span>
 
                   <select
-                    value={appointment.status || "pending"}
+                    value={a.status || "pending"}
                     onChange={(e) =>
-                      handleStatusChange(appointment._id, e.target.value)
+                      handleStatusChange(a._id, e.target.value)
                     }
-                    disabled={updatingId === appointment._id}
+                    disabled={updatingId === a._id}
                     className="admin-status-select"
                   >
-                    {statusOptions.map((status) => (
-                      <option key={status} value={status}>
-                        {status}
+                    {statusOptions.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
                       </option>
                     ))}
                   </select>
@@ -133,37 +185,20 @@ export default function AdminAppointmentsPage() {
               </div>
 
               <div className="admin-record-grid">
-                <p>
-                  <strong>Name:</strong> {appointment.fullName}
-                </p>
-                <p>
-                  <strong>Email:</strong> {appointment.email}
-                </p>
-                <p>
-                  <strong>Phone:</strong> {appointment.phone}
-                </p>
-                <p>
-                  <strong>Date:</strong> {appointment.date}
-                </p>
-                <p>
-                  <strong>Time Slot:</strong> {appointment.timeSlot}
-                </p>
+                <p><strong>Name:</strong> {a.fullName}</p>
+                <p><strong>Email:</strong> {a.email}</p>
+                <p><strong>Phone:</strong> {a.phone}</p>
+                <p><strong>Date:</strong> {a.date}</p>
+                <p><strong>Time Slot:</strong> {a.timeSlot}</p>
                 <p>
                   <strong>Purpose:</strong>{" "}
-                  {appointment.purpose || appointment.message || "General Appointment"}
+                  {a.purpose || a.message || "General"}
                 </p>
 
-                {(appointment.addressLine ||
-                  appointment.city ||
-                  appointment.state ||
-                  appointment.pincode) && (
+                {(a.addressLine || a.city || a.state) && (
                   <p className="full-row">
-                    <strong>Address:</strong> {appointment.addressLine || ""}
-                    {appointment.addressLine ? ", " : ""}
-                    {appointment.city || ""}
-                    {appointment.city ? ", " : ""}
-                    {appointment.state || ""}{" "}
-                    {appointment.pincode ? `- ${appointment.pincode}` : ""}
+                    <strong>Address:</strong> {a.addressLine}, {a.city},{" "}
+                    {a.state} - {a.pincode}
                   </p>
                 )}
               </div>

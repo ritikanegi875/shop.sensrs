@@ -19,13 +19,17 @@ import {
 type StatsData = {
   totalOrders: number;
   totalAppointments: number;
+  totalUsers: number;
   totalRevenue: number;
+  pendingOrders: number;
+  pendingAppointments: number;
 };
 
 type Order = {
   _id: string;
   fullName?: string;
   totalPrice?: number;
+  status?: string;
   createdAt: string;
 };
 
@@ -34,13 +38,17 @@ type Appointment = {
   fullName?: string;
   date?: string;
   timeSlot?: string;
+  status?: string;
 };
 
 export default function AdminPage() {
   const [stats, setStats] = useState<StatsData>({
     totalOrders: 0,
     totalAppointments: 0,
+    totalUsers: 0,
     totalRevenue: 0,
+    pendingOrders: 0,
+    pendingAppointments: 0,
   });
 
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
@@ -73,15 +81,15 @@ export default function AdminPage() {
     fetchStats();
   }, []);
 
-  const barData = [
-    { name: "Orders", value: stats.totalOrders },
-    { name: "Appointments", value: stats.totalAppointments },
-    { name: "Revenue", value: stats.totalRevenue },
+  const countData = [
+    { name: "Orders", value: stats.totalOrders, fill: "#e11d48" },
+    { name: "Appointments", value: stats.totalAppointments, fill: "#2563eb" },
+    { name: "Users", value: stats.totalUsers, fill: "#16a34a" },
   ];
 
-  const pieData = [
-    { name: "Orders", value: stats.totalOrders },
-    { name: "Appointments", value: stats.totalAppointments },
+  const pendingData = [
+    { name: "Pending Orders", value: stats.pendingOrders },
+    { name: "Pending Appointments", value: stats.pendingAppointments },
   ];
 
   const pieColors = ["#e11d48", "#2563eb"];
@@ -90,14 +98,14 @@ export default function AdminPage() {
     <section className="admin-dashboard-page">
       <div className="admin-dashboard-header">
         <h1>Admin Dashboard</h1>
-        <p>Manage products, banners, orders, appointments, and analytics.</p>
+        <p>Track store performance, customers, orders, and appointments.</p>
       </div>
 
       {loading ? (
         <p className="empty-admin-records">Loading dashboard...</p>
       ) : (
         <>
-          <div className="admin-stats-grid">
+          <div className="admin-stats-grid admin-stats-grid-six">
             <div className="admin-stat-card">
               <h3>Total Orders</h3>
               <p>{stats.totalOrders}</p>
@@ -109,20 +117,35 @@ export default function AdminPage() {
             </div>
 
             <div className="admin-stat-card">
+              <h3>Total Users</h3>
+              <p>{stats.totalUsers}</p>
+            </div>
+
+            <div className="admin-stat-card">
               <h3>Total Revenue</h3>
               <p>₹{(stats.totalRevenue || 0).toLocaleString("en-IN")}</p>
+            </div>
+
+            <div className="admin-stat-card">
+              <h3>Pending Orders</h3>
+              <p>{stats.pendingOrders}</p>
+            </div>
+
+            <div className="admin-stat-card">
+              <h3>Pending Appointments</h3>
+              <p>{stats.pendingAppointments}</p>
             </div>
           </div>
 
           <div className="admin-chart-grid">
             <div className="admin-chart-card">
-              <h2>Performance Overview</h2>
+              <h2>Store Counts Overview</h2>
               <div className="admin-chart-box">
                 <ResponsiveContainer width="100%" height={320}>
-                  <BarChart data={barData}>
+                  <BarChart data={countData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" />
                     <XAxis dataKey="name" stroke="#b3b3b3" />
-                    <YAxis stroke="#b3b3b3" />
+                    <YAxis stroke="#b3b3b3" allowDecimals={false} />
                     <Tooltip
                       contentStyle={{
                         backgroundColor: "#111",
@@ -132,9 +155,9 @@ export default function AdminPage() {
                       }}
                     />
                     <Bar dataKey="value" radius={[8, 8, 0, 0]}>
-                      <Cell fill="#e11d48" />
-                      <Cell fill="#2563eb" />
-                      <Cell fill="#16a34a" />
+                      {countData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -142,19 +165,19 @@ export default function AdminPage() {
             </div>
 
             <div className="admin-chart-card">
-              <h2>Orders vs Appointments</h2>
+              <h2>Pending Workload</h2>
               <div className="admin-chart-box">
                 <ResponsiveContainer width="100%" height={320}>
                   <PieChart>
                     <Pie
-                      data={pieData}
+                      data={pendingData}
                       cx="50%"
                       cy="50%"
                       outerRadius={100}
                       dataKey="value"
                       label
                     >
-                      {pieData.map((entry, index) => (
+                      {pendingData.map((_, index) => (
                         <Cell
                           key={`cell-${index}`}
                           fill={pieColors[index % pieColors.length]}
@@ -189,17 +212,12 @@ export default function AdminPage() {
 
             <Link href="/admin/orders" className="admin-action-card">
               <h3>View Orders</h3>
-              <p>Check customer orders and order details.</p>
+              <p>Check customer orders and update order status.</p>
             </Link>
 
             <Link href="/admin/appointments" className="admin-action-card">
               <h3>View Appointments</h3>
-              <p>Manage all appointment bookings.</p>
-            </Link>
-
-            <Link href="/admin/analytics" className="admin-action-card">
-              <h3>Analytics</h3>
-              <p>View revenue, orders, products, and recent activity.</p>
+              <p>Manage appointments and update appointment status.</p>
             </Link>
 
             <a href="/api/export" className="admin-action-card">
@@ -232,6 +250,7 @@ export default function AdminPage() {
                         <strong>
                           ₹{(order.totalPrice || 0).toLocaleString("en-IN")}
                         </strong>
+                        <p>{order.status || "pending"}</p>
                       </div>
                     </div>
                   ))}
@@ -258,6 +277,7 @@ export default function AdminPage() {
 
                       <div style={{ textAlign: "right" }}>
                         <strong>{appointment.timeSlot || "No slot"}</strong>
+                        <p>{appointment.status || "pending"}</p>
                       </div>
                     </div>
                   ))}

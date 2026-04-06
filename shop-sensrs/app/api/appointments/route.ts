@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Appointment from "@/models/Appointment";
+import { sendMail } from "@/lib/mailer";
 
 function generateAppointmentCode() {
   return `APT-${Date.now().toString().slice(-6)}`;
@@ -68,6 +69,8 @@ export async function POST(req: Request) {
 
     await connectDB();
 
+    const appointmentCode = generateAppointmentCode();
+
     const newAppointment = await Appointment.create({
       fullName,
       email,
@@ -80,9 +83,54 @@ export async function POST(req: Request) {
       timeSlot,
       message,
       purpose: message || "General Appointment",
-      code: generateAppointmentCode(),
+      code: appointmentCode,
       status: "pending",
     });
+
+    try {
+      await sendMail({
+        to: email,
+        subject: "Appointment Confirmation - Shop.SEnSRS",
+        html: `
+          <h2>Appointment Booked Successfully</h2>
+          <p>Hello ${fullName},</p>
+          <p>Your appointment has been booked successfully.</p>
+          <p><strong>Appointment Code:</strong> ${appointmentCode}</p>
+          <p><strong>Date:</strong> ${date}</p>
+          <p><strong>Time Slot:</strong> ${timeSlot}</p>
+          <p><strong>Purpose:</strong> ${message || "General Appointment"}</p>
+          <p><strong>Address:</strong><br/>
+          ${addressLine}<br/>
+          ${city}, ${state} - ${pincode}</p>
+          <p><strong>Status:</strong> pending</p>
+        `,
+      });
+
+      if (process.env.ADMIN_EMAIL) {
+        await sendMail({
+          to: process.env.ADMIN_EMAIL,
+          subject: "New Appointment Booked - Shop.SEnSRS",
+          html: `
+            <h2>New Appointment Booked</h2>
+            <p><strong>Customer:</strong> ${fullName}</p>
+            <p><strong>Email:</strong> ${email}</p>
+            <p><strong>Phone:</strong> ${phone}</p>
+            <p><strong>Appointment Code:</strong> ${appointmentCode}</p>
+            <p><strong>Date:</strong> ${date}</p>
+            <p><strong>Time Slot:</strong> ${timeSlot}</p>
+            <p><strong>Purpose:</strong> ${message || "General Appointment"}</p>
+            <p><strong>Address:</strong><br/>
+            ${addressLine}<br/>
+            ${city}, ${state} - ${pincode}</p>
+            <p><strong>Status:</strong> pending</p>
+          `,
+        });
+      } else {
+        console.error("ADMIN_EMAIL is missing in .env.local");
+      }
+    } catch (mailError) {
+      console.error("APPOINTMENT MAIL ERROR:", mailError);
+    }
 
     return NextResponse.json({
       success: true,

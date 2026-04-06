@@ -91,6 +91,7 @@ export async function POST(req: Request) {
           )
           .join("");
 
+        // Customer mail
         await sendMail({
           to: email,
           subject: "Order Confirmation - Shop.SEnSRS",
@@ -98,6 +99,7 @@ export async function POST(req: Request) {
             <h2>Order Confirmed</h2>
             <p>Hello ${fullName},</p>
             <p>Your order has been placed successfully.</p>
+            <p><strong>Order ID:</strong> ${newOrder._id}</p>
             <p><strong>Total:</strong> ₹${Number(totalPrice).toLocaleString("en-IN")}</p>
             <p><strong>Phone:</strong> ${phone}</p>
             <p><strong>Delivery Address:</strong><br/>
@@ -105,8 +107,33 @@ export async function POST(req: Request) {
             ${city}, ${state} - ${pincode}</p>
             <h3>Items</h3>
             <ul>${itemsHtml}</ul>
+            <p><strong>Status:</strong> pending</p>
           `,
         });
+
+        // Admin mail
+        if (process.env.ADMIN_EMAIL) {
+          await sendMail({
+            to: process.env.ADMIN_EMAIL,
+            subject: "New Order Received - Shop.SEnSRS",
+            html: `
+              <h2>New Order Received</h2>
+              <p><strong>Customer Name:</strong> ${fullName}</p>
+              <p><strong>Email:</strong> ${email}</p>
+              <p><strong>Phone:</strong> ${phone}</p>
+              <p><strong>Order ID:</strong> ${newOrder._id}</p>
+              <p><strong>Total:</strong> ₹${Number(totalPrice).toLocaleString("en-IN")}</p>
+              <p><strong>Delivery Address:</strong><br/>
+              ${addressLine}<br/>
+              ${city}, ${state} - ${pincode}</p>
+              <h3>Items</h3>
+              <ul>${itemsHtml}</ul>
+              <p><strong>Status:</strong> pending</p>
+            `,
+          });
+        } else {
+          console.error("ADMIN_EMAIL is missing in .env.local");
+        }
       }
     } catch (mailError) {
       console.error("MAIL ERROR:", mailError);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type OrderItem = {
   id: number;
@@ -24,12 +24,21 @@ type Order = {
   createdAt: string;
 };
 
-const statusOptions = ["pending", "confirmed", "shipped", "delivered"];
+const statusOptions = [
+  "pending",
+  "confirmed",
+  "shipped",
+  "delivered",
+  "cancelled",
+];
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const fetchOrders = async () => {
     try {
@@ -84,6 +93,24 @@ export default function AdminOrdersPage() {
     }
   };
 
+  const filteredOrders = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    return orders.filter((order) => {
+      const matchesStatus =
+        statusFilter === "all" ? true : order.status === statusFilter;
+
+      const matchesSearch =
+        !query ||
+        order.fullName?.toLowerCase().includes(query) ||
+        order.email?.toLowerCase().includes(query) ||
+        order._id?.toLowerCase().includes(query) ||
+        order._id.slice(-6).toLowerCase().includes(query);
+
+      return matchesStatus && matchesSearch;
+    });
+  }, [orders, search, statusFilter]);
+
   if (loading) {
     return <p className="empty-admin-records">Loading orders...</p>;
   }
@@ -92,14 +119,37 @@ export default function AdminOrdersPage() {
     <section className="admin-records-page">
       <div className="admin-records-header">
         <h1>Orders</h1>
-        <p>Manage customer orders and update order status.</p>
+        <p>Manage customer orders, search records, and update order status.</p>
       </div>
 
-      {orders.length === 0 ? (
+      <div className="admin-filters-bar">
+        <input
+          type="text"
+          className="admin-filter-input"
+          placeholder="Search by name, email, or order id"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+
+        <select
+          className="admin-filter-select"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
+          <option value="all">All Status</option>
+          {statusOptions.map((status) => (
+            <option key={status} value={status}>
+              {status}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {filteredOrders.length === 0 ? (
         <p className="empty-admin-records">No orders found.</p>
       ) : (
         <div className="admin-records-list">
-          {orders.map((order) => (
+          {filteredOrders.map((order) => (
             <div className="admin-record-card" key={order._id}>
               <div className="admin-record-top">
                 <div>
@@ -108,7 +158,21 @@ export default function AdminOrdersPage() {
                 </div>
 
                 <div className="admin-order-status-box">
-                  <span className="record-badge">{order.status}</span>
+                  <span
+                    className={`record-badge ${
+                      order.status === "delivered"
+                        ? "status-delivered"
+                        : order.status === "shipped"
+                        ? "status-shipped"
+                        : order.status === "confirmed"
+                        ? "status-confirmed"
+                        : order.status === "cancelled"
+                        ? "status-cancelled"
+                        : "status-pending"
+                    }`}
+                  >
+                    {order.status || "pending"}
+                  </span>
 
                   <select
                     value={order.status || "pending"}
@@ -167,4 +231,4 @@ export default function AdminOrdersPage() {
       )}
     </section>
   );
-}
+}7

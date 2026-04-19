@@ -17,6 +17,7 @@ type Product = {
   image: string;
   category: string;
   description: string;
+  hasCustomization?: boolean;
 };
 
 export default function HomePage() {
@@ -106,6 +107,7 @@ export default function HomePage() {
                 price={product.price}
                 image={product.image}
                 category={product.category}
+                hasCustomization={product.hasCustomization}
               />
             ))}
           </div>

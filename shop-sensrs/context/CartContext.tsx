@@ -8,25 +8,35 @@ import {
   ReactNode,
 } from "react";
 
+type SelectedCustomizations = Record<string, string>;
+
 type CartItem = {
-  id: number;
+  id: string | number;
   title: string;
   price: number;
   image: string;
   quantity: number;
+  selectedCustomizations?: SelectedCustomizations;
 };
 
 type CartContextType = {
   cartItems: CartItem[];
   addToCart: (item: Omit<CartItem, "quantity">) => void;
-  removeFromCart: (id: number) => void;
-  increaseQty: (id: number) => void;
-  decreaseQty: (id: number) => void;
+  removeFromCart: (id: string | number, selectedCustomizations?: SelectedCustomizations) => void;
+  increaseQty: (id: string | number, selectedCustomizations?: SelectedCustomizations) => void;
+  decreaseQty: (id: string | number, selectedCustomizations?: SelectedCustomizations) => void;
   clearCart: () => void;
   cartCount: number;
 };
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
+
+function isSameCustomization(
+  a?: SelectedCustomizations,
+  b?: SelectedCustomizations
+) {
+  return JSON.stringify(a || {}) === JSON.stringify(b || {});
+}
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -50,11 +60,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const addToCart = (item: Omit<CartItem, "quantity">) => {
     setCartItems((prev) => {
-      const existing = prev.find((cartItem) => cartItem.id === item.id);
+      const existingIndex = prev.findIndex(
+        (cartItem) =>
+          cartItem.id === item.id &&
+          isSameCustomization(
+            cartItem.selectedCustomizations,
+            item.selectedCustomizations
+          )
+      );
 
-      if (existing) {
-        return prev.map((cartItem) =>
-          cartItem.id === item.id
+      if (existingIndex !== -1) {
+        return prev.map((cartItem, index) =>
+          index === existingIndex
             ? { ...cartItem, quantity: cartItem.quantity + 1 }
             : cartItem
         );
@@ -64,23 +81,46 @@ export function CartProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const removeFromCart = (id: number) => {
-    setCartItems((prev) => prev.filter((item) => item.id !== id));
-  };
-
-  const increaseQty = (id: number) => {
+  const removeFromCart = (
+    id: string | number,
+    selectedCustomizations?: SelectedCustomizations
+  ) => {
     setCartItems((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, quantity: item.quantity + 1 } : item
+      prev.filter(
+        (item) =>
+          !(
+            item.id === id &&
+            isSameCustomization(item.selectedCustomizations, selectedCustomizations)
+          )
       )
     );
   };
 
-  const decreaseQty = (id: number) => {
+  const increaseQty = (
+    id: string | number,
+    selectedCustomizations?: SelectedCustomizations
+  ) => {
+    setCartItems((prev) =>
+      prev.map((item) =>
+        item.id === id &&
+        isSameCustomization(item.selectedCustomizations, selectedCustomizations)
+          ? { ...item, quantity: item.quantity + 1 }
+          : item
+      )
+    );
+  };
+
+  const decreaseQty = (
+    id: string | number,
+    selectedCustomizations?: SelectedCustomizations
+  ) => {
     setCartItems((prev) =>
       prev
         .map((item) =>
-          item.id === id ? { ...item, quantity: item.quantity - 1 } : item
+          item.id === id &&
+          isSameCustomization(item.selectedCustomizations, selectedCustomizations)
+            ? { ...item, quantity: item.quantity - 1 }
+            : item
         )
         .filter((item) => item.quantity > 0)
     );

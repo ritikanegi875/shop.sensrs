@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import ProductCard from "@/components/ProductCard";
 
 type Product = {
@@ -10,17 +9,17 @@ type Product = {
   price: number;
   image: string;
   category: string;
-  description: string;
+  description?: string;
+  hasCustomization?: boolean;
 };
 
 export default function ProductsPage() {
-  const searchParams = useSearchParams();
-  const search = searchParams.get("search")?.toLowerCase() || "";
-
   const [products, setProducts] = useState<Product[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState("All");
-  const [maxPrice, setMaxPrice] = useState(100000);
   const [loading, setLoading] = useState(true);
+
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("all");
+  const [maxPrice, setMaxPrice] = useState(100000);
 
   useEffect(() => {
     async function fetchProducts() {
@@ -28,6 +27,7 @@ export default function ProductsPage() {
         const res = await fetch("/api/products", {
           cache: "no-store",
         });
+
         const data = await res.json();
 
         if (data.success) {
@@ -44,25 +44,27 @@ export default function ProductsPage() {
   }, []);
 
   const categories = useMemo(() => {
-    const uniqueCategories = Array.from(
-      new Set(products.map((product) => product.category || "Uncategorized"))
+    const unique = Array.from(
+      new Set(products.map((product) => product.category).filter(Boolean))
     );
-    return ["All", ...uniqueCategories];
+    return unique;
   }, [products]);
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
-      const matchesSearch = product.title.toLowerCase().includes(search);
+      const matchesSearch =
+        !search ||
+        product.title.toLowerCase().includes(search.toLowerCase()) ||
+        product.category.toLowerCase().includes(search.toLowerCase());
 
       const matchesCategory =
-        selectedCategory === "All" ||
-        (product.category || "Uncategorized") === selectedCategory;
+        category === "all" ? true : product.category === category;
 
       const matchesPrice = product.price <= maxPrice;
 
       return matchesSearch && matchesCategory && matchesPrice;
     });
-  }, [products, search, selectedCategory, maxPrice]);
+  }, [products, search, category, maxPrice]);
 
   return (
     <section className="products-page">
@@ -71,56 +73,85 @@ export default function ProductsPage() {
         <p>Browse all available products.</p>
       </div>
 
-      <div className="products-filters">
-        <div className="category-filters">
-          {categories.map((category) => (
-            <button
-              key={category}
-              type="button"
-              className={`filter-chip ${
-                selectedCategory === category ? "active" : ""
-              }`}
-              onClick={() => setSelectedCategory(category)}
-            >
-              {category}
-            </button>
-          ))}
-        </div>
+      <div className="catalog-layout">
+        <aside className="filters-sidebar">
+          <h2>Filters</h2>
 
-        <div className="price-filter-box">
-          <label htmlFor="priceRange">
-            Max Price: ₹{maxPrice.toLocaleString("en-IN")}
-          </label>
-          <input
-            id="priceRange"
-            type="range"
-            min="0"
-            max="100000"
-            step="500"
-            value={maxPrice}
-            onChange={(e) => setMaxPrice(Number(e.target.value))}
-          />
+          <div className="filter-group">
+            <label>Search</label>
+            <input
+              type="text"
+              className="products-search"
+              placeholder="Search products..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
+          <div className="filter-group">
+            <label>Category</label>
+            <select
+              className="products-select"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+            >
+              <option value="all">All</option>
+              {categories.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="filter-group">
+            <label>Max Price: ₹{maxPrice.toLocaleString("en-IN")}</label>
+            <input
+              type="range"
+              min="0"
+              max="100000"
+              step="500"
+              value={maxPrice}
+              onChange={(e) => setMaxPrice(Number(e.target.value))}
+              className="price-range"
+            />
+          </div>
+
+          <button
+            type="button"
+            className="reset-filters-btn"
+            onClick={() => {
+              setSearch("");
+              setCategory("all");
+              setMaxPrice(100000);
+            }}
+          >
+            Reset Filters
+          </button>
+        </aside>
+
+        <div className="catalog-content">
+          {loading ? (
+            <p className="empty-admin-records">Loading products...</p>
+          ) : filteredProducts.length === 0 ? (
+            <p className="no-products">No products found.</p>
+          ) : (
+            <div className="products-grid">
+              {filteredProducts.map((product) => (
+                <ProductCard
+                  key={product._id}
+                  _id={product._id}
+                  title={product.title}
+                  price={product.price}
+                  image={product.image}
+                  category={product.category}
+                  hasCustomization={product.hasCustomization}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
-
-      {loading ? (
-        <p className="empty-admin-records">Loading products...</p>
-      ) : filteredProducts.length === 0 ? (
-        <p className="empty-admin-records">No products found.</p>
-      ) : (
-        <div className="products-grid">
-          {filteredProducts.map((product) => (
-            <ProductCard
-              key={product._id}
-              _id={product._id}
-              title={product.title}
-              price={product.price}
-              image={product.image}
-              category={product.category}
-            />
-          ))}
-        </div>
-      )}
     </section>
   );
 }

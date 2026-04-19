@@ -1,10 +1,23 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
+
+type CustomizationOption = {
+  _id?: string;
+  label: string;
+  price: number;
+  isDefault: boolean;
+};
+
+type CustomizationGroup = {
+  _id?: string;
+  name: string;
+  type: "single";
+  options: CustomizationOption[];
+};
 
 type Product = {
   _id: string;
@@ -13,146 +26,235 @@ type Product = {
   image: string;
   category: string;
   description: string;
+  hasCustomization?: boolean;
+  customizations?: CustomizationGroup[];
 };
 
-export default function ProductDetailPage() {
+export default function ProductDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const { addToCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
 
-  const id = params.id as string;
-
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
-  const [quantity, setQuantity] = useState(1);
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>(
+    {}
+  );
 
   useEffect(() => {
     async function fetchProduct() {
       try {
-        const res = await fetch(`/api/products/${id}`, {
+        const res = await fetch(`/api/products/${params.id}`, {
           cache: "no-store",
         });
+
         const data = await res.json();
 
-        if (data.success) {
-          setProduct(data.product);
+        if (!data.success || !data.product) {
+          router.push("/products");
+          return;
+        }
+
+        const fetchedProduct = data.product as Product;
+        setProduct(fetchedProduct);
+
+        if (
+          fetchedProduct.hasCustomization &&
+          fetchedProduct.customizations &&
+          fetchedProduct.customizations.length > 0
+        ) {
+          const defaults: Record<string, string> = {};
+
+          fetchedProduct.customizations.forEach((group) => {
+            const defaultOption =
+              group.options.find((option) => option.isDefault) ||
+              group.options[0];
+
+            if (defaultOption) {
+              defaults[group.name] = defaultOption.label;
+            }
+          });
+
+          setSelectedOptions(defaults);
         }
       } catch (error) {
-        console.error("FETCH PRODUCT DETAIL ERROR:", error);
+        console.error("PRODUCT DETAIL ERROR:", error);
+        router.push("/products");
       } finally {
         setLoading(false);
       }
     }
 
-    if (id) fetchProduct();
-  }, [id]);
+    if (params?.id) {
+      fetchProduct();
+    }
+  }, [params?.id, router]);
 
-  const cartItem = useMemo(() => {
-    if (!product) return null;
+  const finalPrice = useMemo(() => {
+    if (!product) return 0;
 
-    return {
-      id: Number(product._id.slice(-6).replace(/\D/g, "")) || 1,
-      title: product.title,
-      price: product.price,
-      image: product.image,
-    };
-  }, [product]);
+    let total = Number(product.price) || 0;
 
-  const wishlistItem = useMemo(() => {
-    if (!product) return null;
+    if (product.hasCustomization && product.customizations) {
+      product.customizations.forEach((group) => {
+        const selectedLabel = selectedOptions[group.name];
 
-    return {
+        const selectedOption = group.options.find(
+          (option) => option.label === selectedLabel
+        );
+
+        if (selectedOption) {
+          total += Number(selectedOption.price) || 0;
+        }
+      });
+    }
+
+    return total;
+  }, [product, selectedOptions]);
+
+  const liked = product ? isInWishlist(product._id) : false;
+
+  const handleSelectOption = (groupName: string, optionLabel: string) => {
+    setSelectedOptions((prev) => ({
+      ...prev,
+      [groupName]: optionLabel,
+    }));
+  };
+
+  const handleAddToCart = () => {
+    if (!product) return;
+
+    addToCart({
       id: product._id,
       title: product.title,
-      price: product.price,
+      price: finalPrice,
       image: product.image,
-    };
-  }, [product]);
+      selectedCustomizations: selectedOptions,
+    });
+
+    alert("Product added to cart");
+  };
+
+  const handleWishlistToggle = () => {
+    if (!product) return;
+
+    if (liked) {
+      removeFromWishlist(product._id);
+    } else {
+      addToWishlist({
+        id: product._id,
+        title: product.title,
+        price: finalPrice,
+        image: product.image,
+      });
+    }
+  };
 
   if (loading) {
     return <p className="empty-admin-records">Loading product...</p>;
   }
 
-  if (!product || !cartItem || !wishlistItem) {
+  if (!product) {
     return <p className="empty-admin-records">Product not found.</p>;
   }
 
-  const inWishlist = isInWishlist(wishlistItem.id);
-
-  const handleAddToCart = () => {
-    for (let i = 0; i < quantity; i++) {
-      addToCart(cartItem);
-    }
-  };
-
-  const handleBuyNow = () => {
-    for (let i = 0; i < quantity; i++) {
-      addToCart(cartItem);
-    }
-    router.push("/checkout");
-  };
-
-  const handleWishlist = () => {
-    if (inWishlist) {
-      removeFromWishlist(wishlistItem.id);
-    } else {
-      addToWishlist(wishlistItem);
-    }
-  };
-
   return (
     <section className="product-detail-page">
-      <div className="product-detail-card">
-        <div className="product-detail-image">
-          <Image
+      <div className="product-detail-layout">
+        <div className="product-detail-image-box">
+          <img
             src={product.image}
             alt={product.title}
-            width={600}
-            height={600}
+            className="product-detail-image"
           />
         </div>
 
         <div className="product-detail-content">
-          <span className="product-category">{product.category}</span>
+          <p className="product-category">{product.category}</p>
+
           <h1>{product.title}</h1>
 
           <p className="product-detail-price">
-            ₹{product.price.toLocaleString("en-IN")}
+            ₹{finalPrice.toLocaleString("en-IN")}
           </p>
 
-          <p className="product-detail-description">{product.description}</p>
+          <p className="product-detail-description">
+            {product.description || "No description available."}
+          </p>
 
-          <div className="quantity-box">
-            <span>Quantity</span>
-            <div className="quantity-controls">
-              <button
-                type="button"
-                onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
-              >
-                -
-              </button>
-              <span>{quantity}</span>
-              <button
-                type="button"
-                onClick={() => setQuantity((prev) => prev + 1)}
-              >
-                +
-              </button>
+          {product.hasCustomization &&
+            product.customizations &&
+            product.customizations.length > 0 && (
+              <div className="product-customization-box">
+                <h2>Customize Your Product</h2>
+
+                {product.customizations.map((group, groupIndex) => (
+                  <div key={groupIndex} className="custom-group">
+                    <h3>{group.name}</h3>
+
+                    <div className="custom-options-list">
+                      {group.options.map((option, optionIndex) => (
+                        <label key={optionIndex} className="custom-option">
+                          <input
+                            type="radio"
+                            name={group.name}
+                            value={option.label}
+                            checked={
+                              selectedOptions[group.name] === option.label
+                            }
+                            onChange={() =>
+                              handleSelectOption(group.name, option.label)
+                            }
+                          />
+                          <span>
+                            {option.label} (+₹
+                            {Number(option.price || 0).toLocaleString("en-IN")})
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+          {product.hasCustomization && Object.keys(selectedOptions).length > 0 && (
+            <div className="selected-config">
+              <h3>Selected Configuration</h3>
+              <ul>
+                {Object.entries(selectedOptions).map(([key, value]) => (
+                  <li key={key}>
+                    {key}: {value}
+                  </li>
+                ))}
+              </ul>
             </div>
-          </div>
+          )}
 
           <div className="detail-actions">
-            <button className="primary-btn" onClick={handleAddToCart}>
+            <button
+              type="button"
+              className="primary-btn"
+              onClick={handleAddToCart}
+            >
               Add to Cart
             </button>
 
-            <button className="secondary-btn" onClick={handleBuyNow}>
-              Buy Now
+            <button
+              type="button"
+              className="secondary-btn"
+              onClick={handleWishlistToggle}
+            >
+              {liked ? "Remove Wishlist" : "Add Wishlist"}
             </button>
 
-            <button className="secondary-btn" onClick={handleWishlist}>
-              {inWishlist ? "Remove Wishlist" : "Add Wishlist"}
+            <button
+              type="button"
+              className="secondary-btn"
+              onClick={() => router.push("/products")}
+            >
+              Back to Products
             </button>
           </div>
         </div>

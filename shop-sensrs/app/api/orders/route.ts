@@ -53,13 +53,22 @@ export async function POST(req: Request) {
       !items ||
       !Array.isArray(items) ||
       items.length === 0 ||
-      !totalPrice
+      totalPrice === undefined
     ) {
       return NextResponse.json(
         { success: false, message: "Missing required fields" },
         { status: 400 }
       );
     }
+
+    const normalizedItems = items.map((item: any) => ({
+      id: item.id,
+      title: item.title,
+      price: Number(item.price) || 0,
+      quantity: Number(item.quantity) || 1,
+      image: item.image || "",
+      selectedCustomizations: item.selectedCustomizations || {},
+    }));
 
     await connectDB();
 
@@ -71,27 +80,37 @@ export async function POST(req: Request) {
       city,
       state,
       pincode,
-      items,
-      totalPrice,
+      items: normalizedItems,
+      totalPrice: Number(totalPrice) || 0,
       status: "pending",
     });
 
     try {
       if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-        const itemsHtml = items
-          .map(
-            (item: {
-              title: string;
-              quantity: number;
-              price: number;
-            }) =>
-              `<li>${item.title} × ${item.quantity} — ₹${(
-                item.price * item.quantity
-              ).toLocaleString("en-IN")}</li>`
-          )
+        const itemsHtml = normalizedItems
+          .map((item: any) => {
+            const customizationHtml =
+              item.selectedCustomizations &&
+              Object.keys(item.selectedCustomizations).length > 0
+                ? `<ul>${Object.entries(item.selectedCustomizations)
+                    .map(
+                      ([key, value]) =>
+                        `<li>${key}: ${String(value)}</li>`
+                    )
+                    .join("")}</ul>`
+                : "";
+
+            return `
+              <li>
+                ${item.title} × ${item.quantity} — ₹${(
+                  item.price * item.quantity
+                ).toLocaleString("en-IN")}
+                ${customizationHtml}
+              </li>
+            `;
+          })
           .join("");
 
-        // Customer mail
         await sendMail({
           to: email,
           subject: "Order Confirmation - Shop.SEnSRS",
@@ -111,7 +130,6 @@ export async function POST(req: Request) {
           `,
         });
 
-        // Admin mail
         if (process.env.ADMIN_EMAIL) {
           await sendMail({
             to: process.env.ADMIN_EMAIL,

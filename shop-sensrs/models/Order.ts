@@ -3,7 +3,7 @@ import mongoose, { Schema, models, model } from "mongoose";
 const OrderItemSchema = new Schema(
   {
     id: {
-      type: Number,
+      type: Schema.Types.Mixed,
       required: true,
     },
     title: {
@@ -18,6 +18,16 @@ const OrderItemSchema = new Schema(
     quantity: {
       type: Number,
       required: true,
+    },
+    image: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    selectedCustomizations: {
+      type: Map,
+      of: String,
+      default: {},
     },
   },
   { _id: false }

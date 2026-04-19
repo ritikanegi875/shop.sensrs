@@ -27,26 +27,108 @@ export async function GET(req: Request, { params }: Params) {
       success: true,
       product,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("GET SINGLE PRODUCT ERROR:", error);
 
     return NextResponse.json(
-      { success: false, message: "Failed to fetch product" },
+      {
+        success: false,
+        message: error?.message || "Failed to fetch product",
+      },
       { status: 500 }
     );
   }
 }
 
-export async function PUT(req: Request, { params }: Params) {
+export async function PATCH(req: Request, { params }: Params) {
   try {
     const { id } = await params;
     const body = await req.json();
 
+    const {
+      title,
+      price,
+      image,
+      category,
+      description,
+      hasCustomization,
+      customizations,
+    } = body;
+
+    if (!title || !price || !image || !category) {
+      return NextResponse.json(
+        { success: false, message: "Missing required product fields" },
+        { status: 400 }
+      );
+    }
+
+    const normalizedCustomizations =
+      hasCustomization && Array.isArray(customizations)
+        ? customizations
+            .map((group: any) => {
+              const validOptions = Array.isArray(group.options)
+                ? group.options.filter(
+                    (option: any) => option.label && option.label.trim() !== ""
+                  )
+                : [];
+
+              if (!group.name || group.name.trim() === "" || validOptions.length === 0) {
+                return null;
+              }
+
+              let options = validOptions.map((option: any) => ({
+                label: option.label.trim(),
+                price: Number(option.price) || 0,
+                isDefault: !!option.isDefault,
+              }));
+
+              if (!options.some((option: any) => option.isDefault)) {
+                let lowestIndex = 0;
+                for (let i = 1; i < options.length; i++) {
+                  if (options[i].price < options[lowestIndex].price) {
+                    lowestIndex = i;
+                  }
+                }
+
+                options = options.map((option: any, index: number) => ({
+                  ...option,
+                  isDefault: index === lowestIndex,
+                }));
+              } else {
+                let foundDefault = false;
+                options = options.map((option: any) => {
+                  if (option.isDefault && !foundDefault) {
+                    foundDefault = true;
+                    return option;
+                  }
+                  return { ...option, isDefault: false };
+                });
+              }
+
+              return {
+                name: group.name.trim(),
+                type: "single",
+                options,
+              };
+            })
+            .filter(Boolean)
+        : [];
+
     await connectDB();
 
-    const updatedProduct = await Product.findByIdAndUpdate(id, body, {
-      new: true,
-    });
+    const updatedProduct = await Product.findByIdAndUpdate(
+      id,
+      {
+        title: title.trim(),
+        price: Number(price),
+        image: image.trim(),
+        category: category.trim(),
+        description: description?.trim() || "",
+        hasCustomization: !!hasCustomization,
+        customizations: normalizedCustomizations,
+      },
+      { new: true, runValidators: true }
+    );
 
     if (!updatedProduct) {
       return NextResponse.json(

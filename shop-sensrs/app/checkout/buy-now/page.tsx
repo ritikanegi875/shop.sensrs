@@ -47,16 +47,6 @@ export default function BuyNowPage() {
     0
   );
 
-  const fillAddressFields = (address: Address, fallbackEmail?: string) => {
-    setFullName(address.fullName || "");
-    setPhone(address.phone || "");
-    setAddressLine(address.addressLine || "");
-    setCity(address.city || "");
-    setStateName(address.state || "");
-    setPincode(address.pincode || "");
-    if (fallbackEmail) setEmail(fallbackEmail);
-  };
-
   useEffect(() => {
     async function fetchProfile() {
       try {
@@ -76,13 +66,13 @@ export default function BuyNowPage() {
         setEmail(fetchedUser.email || "");
 
         if (fetchedUser.addresses && fetchedUser.addresses.length > 0) {
-  const defaultAddress =
-    fetchedUser.addresses.find((address) => address.isDefault) ||
-    fetchedUser.addresses[0];
+          const defaultAddress =
+            fetchedUser.addresses.find((address) => address.isDefault) ||
+            fetchedUser.addresses[0];
 
-  setSelectedAddressId(defaultAddress._id);
-  fillAddressFields(defaultAddress, fetchedUser.email);
-}
+          setSelectedAddressId(defaultAddress._id);
+          fillAddressFields(defaultAddress, fetchedUser.email);
+        }
       } catch (error) {
         console.error("BUY NOW PROFILE ERROR:", error);
         router.push("/auth/login?redirect=/checkout/buy-now");
@@ -93,6 +83,16 @@ export default function BuyNowPage() {
 
     fetchProfile();
   }, [router]);
+
+  const fillAddressFields = (address: Address, fallbackEmail?: string) => {
+    setFullName(address.fullName || "");
+    setPhone(address.phone || "");
+    setAddressLine(address.addressLine || "");
+    setCity(address.city || "");
+    setStateName(address.state || "");
+    setPincode(address.pincode || "");
+    if (fallbackEmail) setEmail(fallbackEmail);
+  };
 
   const handleAddressSelect = (addressId: string) => {
     setSelectedAddressId(addressId);
@@ -153,7 +153,7 @@ export default function BuyNowPage() {
         alert(data.message || "Order failed");
       }
     } catch (error) {
-      console.error("ORDER ERROR:", error);
+      console.error(error);
       alert("Something went wrong");
     } finally {
       setLoading(false);
@@ -184,7 +184,21 @@ export default function BuyNowPage() {
                     <div>
                       <strong>{item.title}</strong>
                       <p>Qty: {item.quantity}</p>
+
+                      {item.selectedCustomizations &&
+                        Object.keys(item.selectedCustomizations).length > 0 && (
+                          <ul className="checkout-customizations">
+                            {Object.entries(item.selectedCustomizations).map(
+                              ([key, value]) => (
+                                <li key={key}>
+                                  {key}: {value}
+                                </li>
+                              )
+                            )}
+                          </ul>
+                        )}
                     </div>
+
                     <span>
                       ₹{(item.price * item.quantity).toLocaleString("en-IN")}
                     </span>

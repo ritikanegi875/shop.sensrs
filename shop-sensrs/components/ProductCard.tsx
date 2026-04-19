@@ -10,6 +10,7 @@ interface ProductCardProps {
   price: number;
   image: string;
   category?: string;
+  hasCustomization?: boolean;
 }
 
 export default function ProductCard({
@@ -18,28 +19,13 @@ export default function ProductCard({
   price,
   image,
   category,
+  hasCustomization,
 }: ProductCardProps) {
   const router = useRouter();
   const { addToCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
 
-  const numericId = Number(_id.slice(-6).replace(/\D/g, "") || "1");
-  const inWishlist = isInWishlist(_id);
-
-  const handleWishlistToggle = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.stopPropagation();
-
-    if (inWishlist) {
-      removeFromWishlist(_id);
-    } else {
-      addToWishlist({
-        id: _id,
-        title,
-        price,
-        image,
-      });
-    }
-  };
+  const liked = isInWishlist(_id);
 
   return (
     <div className="product-card">
@@ -51,10 +37,23 @@ export default function ProductCard({
 
         <button
           type="button"
-          className="wishlist-btn"
-          onClick={handleWishlistToggle}
+          className="wishlist-toggle"
+          onClick={(e) => {
+            e.stopPropagation();
+
+            if (liked) {
+              removeFromWishlist(_id);
+            } else {
+              addToWishlist({
+                id: _id,
+                title,
+                price,
+                image,
+              });
+            }
+          }}
         >
-          {inWishlist ? "❤️" : "🤍"}
+          {liked ? "❤️" : "🤍"}
         </button>
       </div>
 
@@ -65,19 +64,28 @@ export default function ProductCard({
 
         <p className="product-price">₹{price.toLocaleString("en-IN")}</p>
 
+        {hasCustomization && (
+          <p className="customizable-badge">Customizable Product</p>
+        )}
+
         <button
           type="button"
           className="add-to-cart-btn"
-          onClick={() =>
+          onClick={() => {
+            if (hasCustomization) {
+              router.push(`/products/${_id}`);
+              return;
+            }
+
             addToCart({
-              id: numericId,
+              id: _id,
               title,
               price,
               image,
-            })
-          }
+            });
+          }}
         >
-          Add to Cart
+          {hasCustomization ? "Customize" : "Add to Cart"}
         </button>
       </div>
     </div>

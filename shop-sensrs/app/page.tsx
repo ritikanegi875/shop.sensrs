@@ -90,29 +90,31 @@ export default function HomePage() {
       <FeatureBar />
 
       <section className="featured-products">
-        <div className="section-header">
-          <h2>Featured Products</h2>
-          <p>Explore our latest and trending electronics</p>
-        </div>
+  <div className="section-header text-center">
+    <span className="sub-heading">Featured Products</span>
+    <h2>
+      <span className="text-green">Our</span> <span className="text-gold">Best Picks</span>
+    </h2>
+  </div>
 
-        {products.length === 0 ? (
-          <p className="empty-admin-records">No products found.</p>
-        ) : (
-          <div className="products-grid">
-            {products.slice(0, 8).map((product) => (
-              <ProductCard
-                key={product._id}
-                _id={product._id}
-                title={product.title}
-                price={product.price}
-                image={product.image}
-                category={product.category}
-                hasCustomization={product.hasCustomization}
-              />
-            ))}
-          </div>
-        )}
-      </section>
+  {products.length === 0 ? (
+    <p className="empty-admin-records">No products found.</p>
+  ) : (
+    <div className="products-grid">
+      {products.slice(0, 8).map((product) => (
+        <ProductCard
+          key={product._id}
+          _id={product._id}
+          title={product.title}
+          price={product.price}
+          image={product.image}
+          category={product.category}
+          hasCustomization={product.hasCustomization}
+        />
+      ))}
+    </div>
+  )}
+</section>
     </main>
   );
 }

@@ -16,26 +16,37 @@ const CustomizationOptionSchema = new Schema(
       type: Boolean,
       default: false,
     },
+    // NEW FIELDS: Generic specification slots mapped to dynamic row indicators
+    spec1: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    spec2: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    spec3: {
+      type: String,
+      default: "",
+      trim: true,
+    },
   },
   { _id: true }
 );
 
 const CustomizationGroupSchema = new Schema(
   {
-    name: {
-      type: String,
-      required: true,
-      trim: true,
+    name: { type: String, required: true, trim: true },
+    type: { type: String, enum: ["single"], default: "single" },
+    description: { type: String, default: "", trim: true }, // Ensure this line exists here
+    specLabels: {
+      label1: { type: String, default: "Spec 1", trim: true },
+      label2: { type: String, default: "Spec 2", trim: true },
+      label3: { type: String, default: "Spec 3", trim: true },
     },
-    type: {
-      type: String,
-      enum: ["single"],
-      default: "single",
-    },
-    options: {
-      type: [CustomizationOptionSchema],
-      default: [],
-    },
+    options: { type: [CustomizationOptionSchema], default: [] },
   },
   { _id: true }
 );

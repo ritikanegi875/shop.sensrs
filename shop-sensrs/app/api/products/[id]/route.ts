@@ -76,10 +76,14 @@ export async function PATCH(req: Request, { params }: Params) {
                 return null;
               }
 
+              // Normalizes selection specs alongside dynamic mapping values safely
               let options = validOptions.map((option: any) => ({
                 label: option.label.trim(),
                 price: Number(option.price) || 0,
                 isDefault: !!option.isDefault,
+                spec1: option.spec1?.trim() || "",
+                spec2: option.spec2?.trim() || "",
+                spec3: option.spec3?.trim() || "",
               }));
 
               if (!options.some((option: any) => option.isDefault)) {
@@ -108,6 +112,13 @@ export async function PATCH(req: Request, { params }: Params) {
               return {
                 name: group.name.trim(),
                 type: "single",
+                description: group.description?.trim() || "",
+                // Persists custom dynamic headers correctly for individual tab instances
+                specLabels: {
+                  label1: group.specLabels?.label1?.trim() || "Spec 1",
+                  label2: group.specLabels?.label2?.trim() || "Spec 2",
+                  label3: group.specLabels?.label3?.trim() || "Spec 3",
+                },
                 options,
               };
             })

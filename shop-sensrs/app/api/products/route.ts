@@ -60,10 +60,14 @@ export async function POST(req: Request) {
                 return null;
               }
 
+              // Process options mapping containing flexible custom specifications per tab setup
               let options = validOptions.map((option: any) => ({
                 label: option.label.trim(),
                 price: Number(option.price) || 0,
                 isDefault: !!option.isDefault,
+                spec1: option.spec1?.trim() || "",
+                spec2: option.spec2?.trim() || "",
+                spec3: option.spec3?.trim() || "",
               }));
 
               if (!options.some((option: any) => option.isDefault)) {
@@ -92,6 +96,12 @@ export async function POST(req: Request) {
               return {
                 name: group.name.trim(),
                 type: "single",
+                // Safely maps the independent labels per tab group down into your database document collection
+                specLabels: {
+                  label1: group.specLabels?.label1?.trim() || "Spec 1",
+                  label2: group.specLabels?.label2?.trim() || "Spec 2",
+                  label3: group.specLabels?.label3?.trim() || "Spec 3",
+                },
                 options,
               };
             })

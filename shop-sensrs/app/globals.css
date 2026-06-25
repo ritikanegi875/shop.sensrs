@@ -54,7 +54,7 @@ img {
 .logo a {
   font-size: 26px;
   font-weight: bold;
-  color: rgb(0, 0, 0);
+  /* color: rgb(0, 0, 0); */
   font-family: Georgia, 'Times New Roman', Times, serif;
 }
 
@@ -1735,7 +1735,7 @@ img {
 }
 
 .buy-now-login-text {
-  color: #181717;
+  /* color: #181717; */
   margin-bottom: 24px;
 }
 

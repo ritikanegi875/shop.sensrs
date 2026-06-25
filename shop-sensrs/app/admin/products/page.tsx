@@ -1,6 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { 
+  ShoppingBag, 
+  Eye, 
+  Layers, 
+  Plus, 
+  Filter, 
+  Download, 
+  Edit3, 
+  Trash2, 
+  ChevronLeft, 
+  ChevronRight 
+} from "lucide-react";
 
 type CustomizationOption = {
   label: string;
@@ -12,9 +24,9 @@ type CustomizationOption = {
 };
 
 type CustomizationGroup = {
-  name: string; // Dynamic Tab Name (e.g., Motor, Battery)
+  name: string;
   type: "single";
-  description?: string; // Explicitly declared to allow normalization
+  description?: string;
   specLabels: {
     label1: string; 
     label2: string; 
@@ -30,6 +42,8 @@ type Product = {
   image: string;
   category: string;
   description: string;
+  sku?: string;
+  createdAt?: string;
   hasCustomization?: boolean;
   customizations?: CustomizationGroup[];
 };
@@ -61,16 +75,24 @@ export default function AdminProductsPage() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
+  const [sku, setSku] = useState("");
 
   const [hasCustomization, setHasCustomization] = useState(false);
   const [customizations, setCustomizations] = useState<CustomizationGroup[]>([]);
+
+  const totalCount = products.length;
 
   const fetchProducts = async () => {
     try {
       const res = await fetch("/api/products", { cache: "no-store" });
       const data = await res.json();
       if (data.success) {
-        setProducts(data.products || []);
+        const processedProducts = (data.products || []).map((p: any) => ({
+          ...p,
+          sku: p.sku || `SKU-${p._id?.slice(-6).toUpperCase() || "GENERIC"}`,
+          createdAt: p.createdAt ? new Date(p.createdAt).toLocaleDateString("en-GB") + ", " + new Date(p.createdAt).toLocaleTimeString("en-US", {hour: '2-digit', minute:'2-digit'}) : "14/06/2026, 10:30 AM"
+        }));
+        setProducts(processedProducts);
       }
     } catch (error) {
       console.error("FETCH PRODUCTS ERROR:", error);
@@ -91,6 +113,7 @@ export default function AdminProductsPage() {
     setImageFile(null);
     setCategory("");
     setDescription("");
+    setSku("");
     setHasCustomization(false);
     setCustomizations([]);
   };
@@ -217,9 +240,6 @@ export default function AdminProductsPage() {
 
   const normalizeCustomizations = (groups: CustomizationGroup[]): CustomizationGroup[] => {
     const validGroups: CustomizationGroup[] = [];
-
-    // FIXED: Switched from inline array chaining to a clean native imperative builder array push loop.
-    // This removes the type predicate guard errors completely and is much safer for TypeScript.
     groups.forEach((group) => {
       if (!group.name || group.name.trim() === "") return;
 
@@ -289,6 +309,7 @@ export default function AdminProductsPage() {
         image: finalImage,
         category,
         description,
+        sku,
         hasCustomization,
         customizations: normalizedCustomizations,
       };
@@ -322,6 +343,7 @@ export default function AdminProductsPage() {
     setImageFile(null);
     setCategory(product.category);
     setDescription(product.description || "");
+    setSku(product.sku || "");
     setHasCustomization(!!product.hasCustomization);
     
     const loadedCustomizations = (product.customizations || []).map(g => ({
@@ -338,7 +360,7 @@ export default function AdminProductsPage() {
       }
     }));
     setCustomizations(loadedCustomizations);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: document.getElementById('product-form-anchor')?.offsetTop, behavior: "smooth" });
   };
 
   const handleDelete = async (id: string) => {
@@ -359,28 +381,21 @@ export default function AdminProductsPage() {
   };
 
   return (
-    <section className="admin-products-page">
+    <section className="admin-products-page" style={{ padding: "32px", backgroundColor: "#f8fafc", minHeight: "100vh", fontFamily: "sans-serif" }}>
+      
+      {/* GLOBAL MATRIX COMPONENT CORE STYLES */}
       <style dangerouslySetInnerHTML={{__html: `
-        .admin-products-page { padding: 2rem; max-width: 1200px; margin: 0 auto; font-family: system-ui, -apple-system, sans-serif; background: #f8fafc; color: #0f172a; }
-        .admin-products-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 1rem; }
-        .admin-products-header h1 { font-size: 1.75rem; font-weight: 700; color: #1e293b; margin: 0; }
-        .admin-products-header p { color: #64748b; margin: 0.25rem 0 0 0; font-size: 0.95rem; }
-        .admin-add-btn { background: #64748b; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; font-weight: 600; cursor: pointer; }
-        .admin-product-form-box { background: white; border: 1px solid #e2e8f0; padding: 2rem; border-radius: 12px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); }
         .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
         .form-group.full-width { grid-column: span 2; }
         .form-group label { font-size: 0.875rem; font-weight: 600; color: #334155; }
-        .form-group input[type="text"], .form-group input[type="number"], .form-group textarea { padding: 0.65rem 0.75rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.95rem; width: 100%; box-sizing: border-box; outline: none; transition: border 0.15s; }
-        .form-group input:focus, .form-group textarea:focus { border-color: #0284c7; box-shadow: 0 0 0 1px #0284c7; }
-        .admin-image-preview { margin-top: 0.5rem; }
-        .admin-product-thumb { width: 80px; height: 70px; object-fit: cover; border-radius: 6px; border: 1px solid #e2e8f0; }
+        .form-group input[type="text"], .form-group input[type="number"], .form-group select, .form-group textarea { padding: 0.65rem 0.75rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.95rem; width: 100%; box-sizing: border-box; outline: none; }
         .customization-toggle { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none; }
         .customization-toggle input { width: 1.15rem; height: 1.15rem; cursor: pointer; }
         .customization-builder { border-top: 2px dashed #e2e8f0; padding-top: 2rem; margin-top: 0.5rem; }
         .customization-builder-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
         .customization-builder-head h2 { font-size: 1.25rem; font-weight: 700; color: #1e293b; margin: 0; }
         .primary-btn { background: #0284c7; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; font-weight: 600; cursor: pointer; }
-        .secondary-btn { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; padding: 0.5rem 1rem; border-radius: 6px; font-weight: 600; cursor: pointer; margin-top: 0.5rem; }
+        .secondary-btn { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; padding: 0.5rem 1rem; border-radius: 6px; font-weight: 600; cursor: pointer; margin-top: 0.5rem; width: 100%; }
         .delete-btn { background: #ef4444; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
         .customization-group-card { background: #fff; border: 1px solid #cbd5e1; padding: 1.5rem; margin-bottom: 1.5rem; border-radius: 8px; display: flex; flex-direction: column; gap: 1.25rem; box-shadow: 0 1px 3px rgb(0 0 0 / 0.05); }
         .customization-group-head { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.75rem; }
@@ -389,83 +404,153 @@ export default function AdminProductsPage() {
         .customization-option-row-grid { display: flex; flex-wrap: wrap; gap: 0.75rem; padding-bottom: 1.25rem; margin-bottom: 1.25rem; border-bottom: 1px dashed #e2e8f0; background: #fafafa; padding: 1rem; border-radius: 6px; align-items: flex-end; }
         .option-default-box { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 60px; }
         .option-default-box input { width: 1.15rem; height: 1.15rem; cursor: pointer; margin-top: 0.5rem; }
-        .admin-save-btn { background: #0f172a; color: white; border: none; padding: 0.85rem 2rem; font-size: 1rem; font-weight: 700; border-radius: 8px; cursor: pointer; transition: background 0.15s; width: 100%; }
-        .admin-save-btn:hover { background: #1e293b; }
-        .form-actions { grid-column: span 2; margin-top: 1rem; }
-        .admin-product-management { grid-column: span 2; }
-        .admin-product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.5rem; margin-top: 1.5rem; }
-        .admin-product-card { background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; box-shadow: 0 1px 3px rgb(0 0 0 / 0.04); }
-        .admin-product-card h3 { margin: 0; font-size: 1.1rem; font-weight: 600; color: #1e293b; }
-        .admin-product-card p { margin: 0; color: #64748b; font-size: 0.9rem; }
-        .admin-product-actions { margin-top: auto; padding-top: 1rem; border-top: 1px solid #f1f5f9; }
-        .admin-action-buttons { display: flex; gap: 0.5rem; }
-        .admin-action-buttons .edit-btn { background: #f1f5f9; color: #1e293b; border: 1px solid #cbd5e1; padding: 0.4rem 0.8rem; border-radius: 6px; font-weight: 600; cursor: pointer; flex: 1; font-size: 0.85rem; text-align: center; }
-        .admin-action-buttons .delete-btn { flex: 1; text-align: center; }
-        .empty-admin-records { text-align: center; color: #64748b; padding: 2rem; grid-column: span 2; }
       `}} />
 
-      <div className="admin-products-header">
+      {/* DASHBOARD TOP HEADER BAR */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "24px" }}>
         <div>
-          <h1>Manage Products</h1>
-          <p>Add, edit, delete, and configure customizable products.</p>
+          <h1 style={{ fontSize: "24px", fontWeight: "700", color: "#0f172a", margin: "0 0 4px 0" }}>Products</h1>
+          <p style={{ fontSize: "14px", color: "#64748b", margin: 0 }}>Manage all product listings in your store.</p>
         </div>
-        {editingId && (
-          <button className="admin-add-btn" type="button" onClick={resetForm}>
-            Cancel Edit
-          </button>
-        )}
+        <div style={{ display: "flex", gap: "12px" }}>
+          <button style={{ display: "flex", alignItems: "center", gap: "6px", border: "1px solid #e2e8f0", backgroundColor: "#fff", padding: "8px 16px", borderRadius: "6px", fontSize: "14px", fontWeight: "500", color: "#334155", cursor: "pointer" }}><Filter size={16} /> Filter</button>
+          <button style={{ display: "flex", alignItems: "center", gap: "6px", border: "1px solid #e2e8f0", backgroundColor: "#fff", padding: "8px 16px", borderRadius: "6px", fontSize: "14px", fontWeight: "500", color: "#334155", cursor: "pointer" }}><Download size={16} /> Export</button>
+          <button onClick={() => window.scrollTo({ top: document.getElementById('product-form-anchor')?.offsetTop, behavior: 'smooth' })} style={{ display: "flex", alignItems: "center", gap: "6px", border: "none", backgroundColor: "#14532d", color: "#fff", padding: "8px 16px", borderRadius: "6px", fontSize: "14px", fontWeight: "500", cursor: "pointer" }}><Plus size={16} /> Add Product</button>
+        </div>
       </div>
 
-      <div className="admin-product-form-box">
-        <div className="form-group">
-          <label>Product Title</label>
-          <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Enter product title" />
+      {/* METRIC OVERVIEW GRID */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "20px", marginBottom: "32px" }}>
+        <div style={{ backgroundColor: "#fff", border: "1px solid #e2e8f0", padding: "20px", borderRadius: "12px", display: "flex", alignItems: "center", gap: "16px" }}>
+          <div style={{ width: "48px", height: "48px", borderRadius: "50%", backgroundColor: "#f0fdf4", color: "#16a34a", display: "flex", alignItems: "center", justifyContent: "center" }}><ShoppingBag size={22} /></div>
+          <div><span style={{ fontSize: "13px", fontWeight: "500", color: "#64748b" }}>Total Catalog Products</span><h3 style={{ fontSize: "24px", fontWeight: "700", color: "#0f172a", margin: "4px 0 2px 0" }}>{totalCount}</h3><span style={{ fontSize: "12px", color: "#16a34a" }}></span></div>
         </div>
+      </div>
 
-        <div className="form-group">
-          <label>Base Price</label>
-          <input type="number" value={price} onChange={(e) => setPrice(Number(e.target.value))} placeholder="Enter base price" />
+      {/* COMPACT INTERFACE DATA TABLE */}
+      <div style={{ backgroundColor: "#ffffff", borderRadius: "12px", border: "1px solid #e2e8f0", overflow: "hidden", marginBottom: "40px" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "14px" }}>
+          <thead>
+            <tr style={{ backgroundColor: "#fafafa", borderBottom: "1px solid #e2e8f0", color: "#475569", fontWeight: "600" }}>
+              {/* <th style={{ padding: "16px 20px", width: "40px" }}><input type="checkbox" /></th> */}
+              <th style={{ padding: "16px 20px" }}>Product</th>
+              <th style={{ padding: "16px 20px" }}>Category</th>
+              <th style={{ padding: "16px 20px" }}>Price</th>
+              <th style={{ padding: "16px 20px" }}>Created At</th>
+              <th style={{ padding: "16px 20px", textAlign: "right" }}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={6} style={{ textAlign: "center", padding: "32px", color: "#64748b" }}>Loading products dataset...</td></tr>
+            ) : products.length === 0 ? (
+              <tr><td colSpan={6} style={{ textAlign: "center", padding: "32px", color: "#64748b" }}>No active products cataloged.</td></tr>
+            ) : (
+              products.map((product) => {
+                return (
+                  <tr key={product._id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                    {/* <td style={{ padding: "14px 20px" }}><input type="checkbox" /></td> */}
+                    <td style={{ padding: "14px 20px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                        <img src={product.image} alt="" style={{ width: "44px", height: "44px", objectFit: "contain", borderRadius: "6px", backgroundColor: "#fafafa", border: "1px solid #f1f5f9" }} />
+                        <div>
+                          <div style={{ fontWeight: "600", color: "#1e293b" }}>{product.title}</div>
+                          <div style={{ fontSize: "12px", color: "#94a3b8" }}>SKU: {product.sku}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ padding: "14px 20px", color: "#475569" }}>{product.category}</td>
+                    <td style={{ padding: "14px 20px", fontWeight: "600" }}>₹{product.price.toLocaleString("en-IN")}</td>
+                    <td style={{ padding: "14px 20px", color: "#64748b" }}>{product.createdAt}</td>
+                    <td style={{ padding: "14px 20px", textAlign: "right" }}>
+                      <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end", color: "#94a3b8" }}>
+                        <button style={{ background: "none", border: "none", color: "#475569", cursor: "pointer" }} onClick={() => handleEdit(product)}><Edit3 size={17} /></button>
+                        <button style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer" }} onClick={() => handleDelete(product._id)}><Trash2 size={17} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+        <div style={{ padding: "16px 20px", borderTop: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: "#fff" }}>
+          <span style={{ fontSize: "13px", color: "#64748b" }}>Showing 1 to {products.length} of {products.length} products</span>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <button style={{ border: "1px solid #e2e8f0", backgroundColor: "#fff", padding: "6px", borderRadius: "6px" }} disabled><ChevronLeft size={16} /></button>
+            <button style={{ border: "none", backgroundColor: "#e0f2fe", color: "#0369a1", padding: "6px 12px", borderRadius: "6px", fontSize: "13px", fontWeight: "600" }}>1</button>
+            <button style={{ border: "1px solid #e2e8f0", backgroundColor: "#fff", padding: "6px", borderRadius: "6px" }}><ChevronRight size={16} /></button>
+          </div>
         </div>
+      </div>
 
-        <div className="form-group">
-          <label>Upload Product Image</label>
-          <input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files?.[0] || null)} />
-          {image && !imageFile && (
-            <div className="admin-image-preview">
-              <img src={image} alt="Preview" className="admin-product-thumb" />
-            </div>
+      <hr style={{ border: "none", borderTop: "1px solid #e2e8f0", margin: "40px 0" }} />
+
+      {/* CORE PRODUCT MANAGEMENT INTERFACE FORM WORKBENCH */}
+      <div id="product-form-anchor" style={{ background: "white", border: "1px solid #e2e8f0", padding: "32px", borderRadius: "12px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
+          <h2 style={{ fontSize: "18px", fontWeight: "700", color: "#0f172a", margin: 0 }}>
+            {editingId ? "Modify Product Details" : "Add Product"}
+          </h2>
+          {editingId && (
+            <button style={{ background: "#64748b", color: "white", border: "none", padding: "0.6rem 1.2rem", borderRadius: "6px", fontWeight: "600", cursor: "pointer" }} type="button" onClick={resetForm}>
+              Cancel Edit
+            </button>
           )}
         </div>
 
-        <div className="form-group">
-          <label>Category</label>
-          <input type="text" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Enter category" />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "24px" }}>
+          <div className="form-group">
+            <label>Product Title</label>
+            <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Enter product title" />
+          </div>
+
+          <div className="form-group">
+            <label>Base Price</label>
+            <input type="number" value={price} onChange={(e) => setPrice(Number(e.target.value))} placeholder="Enter base price" />
+          </div>
+
+          <div className="form-group full-width">
+            <label>Category</label>
+            <input type="text" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Enter category" />
+          </div>
+
+          <div className="form-group full-width">
+            <label>Upload Product Image</label>
+            <input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files?.[0] || null)} style={{ padding: "8px", border: "1px solid #cbd5e1", borderRadius: "6px" }} />
+            {image && !imageFile && (
+              <div style={{ marginTop: "8px" }}>
+                <img src={image} alt="Preview" style={{ width: "80px", height: "70px", objectFit: "cover", borderRadius: "6px", border: "1px solid #e2e8f0" }} />
+              </div>
+            )}
+          </div>
+
+          <div className="form-group full-width">
+            <label>Description</label>
+            <textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Enter product description" />
+          </div>
+
+          <div className="form-group full-width">
+            <label className="customization-toggle">
+              <input
+                type="checkbox"
+                checked={hasCustomization}
+                onChange={(e) => {
+                  setHasCustomization(e.target.checked);
+                  if (e.target.checked && customizations.length === 0) {
+                    setCustomizations([emptyGroup()]);
+                  }
+                  if (!e.target.checked) {
+                    setCustomizations([]);
+                  }
+                }}
+              />
+              <span>Enable Product Customization</span>
+            </label>
+          </div>
         </div>
 
-        <div className="form-group full-width">
-          <label>Description</label>
-          <textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Enter product description" />
-        </div>
-
-        <div className="form-group full-width">
-          <label className="customization-toggle">
-            <input
-              type="checkbox"
-              checked={hasCustomization}
-              onChange={(e) => {
-                setHasCustomization(e.target.checked);
-                if (e.target.checked && customizations.length === 0) {
-                  setCustomizations([emptyGroup()]);
-                }
-                if (!e.target.checked) {
-                  setCustomizations([]);
-                }
-              }}
-            />
-            <span>Enable Product Customization</span>
-          </label>
-        </div>
-
+        {/* WORKSTATION VISUAL PARAMETER OPTION CARDS TABS BLOCK CONFIGURATOR */}
         {hasCustomization && (
           <div className="full-width customization-builder">
             <div className="customization-builder-head">
@@ -476,7 +561,7 @@ export default function AdminProductsPage() {
             </div>
 
             {customizations.length === 0 ? (
-              <p className="empty-admin-records">No customization tabs added yet.</p>
+              <p style={{ textAlign: "center", color: "#64748b", padding: "2rem" }}>No customization tabs added yet.</p>
             ) : (
               <div className="customization-groups">
                 {customizations.map((group, groupIndex) => (
@@ -602,7 +687,7 @@ export default function AdminProductsPage() {
                             />
                           </div>
 
-                          <div className="option-action-box" style={{ display: "flex", alignItems: "flex-end", paddingBottom: "5px" }}>
+                          <div style={{ display: "flex", alignItems: "flex-end", paddingBottom: "5px" }}>
                             <button type="button" className="delete-btn" onClick={() => handleRemoveOption(groupIndex, optionIndex)}>
                               Remove
                             </button>
@@ -621,36 +706,11 @@ export default function AdminProductsPage() {
           </div>
         )}
 
-        <div className="form-actions full-width">
-          <button type="button" className="admin-save-btn" onClick={handleSubmit}>
+        <div style={{ marginTop: "24px" }}>
+          <button type="button" className="admin-save-btn" onClick={handleSubmit} style={{ background: "#0f172a", color: "white", border: "none", padding: "0.85rem 2rem", fontSize: "1rem", fontWeight: "700", borderRadius: "8px", cursor: "pointer", width: "100%" }}>
             {uploadingImage ? "Uploading Image..." : editingId ? "Update Product" : "Add Product"}
           </button>
         </div>
-      </div>
-
-      <div className="admin-product-management">
-        {loading ? (
-          <p className="empty-admin-records">Loading products...</p>
-        ) : products.length === 0 ? (
-          <p className="empty-admin-records">No products found.</p>
-        ) : (
-          <div className="admin-product-grid">
-            {products.map((product) => (
-              <div className="admin-product-card" key={product._id}>
-                <img src={product.image} alt={product.title} className="admin-product-thumb" />
-                <h3>{product.title}</h3>
-                <p>₹{product.price.toLocaleString("en-IN")}</p>
-                <p>{product.category}</p>
-                <div className="admin-product-actions">
-                  <div className="admin-action-buttons">
-                    <button type="button" className="edit-btn" onClick={() => handleEdit(product)}>Edit</button>
-                    <button type="button" className="delete-btn" onClick={() => handleDelete(product._id)}>Delete</button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
     </section>
   );

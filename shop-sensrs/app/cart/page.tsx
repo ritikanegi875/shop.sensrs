@@ -71,7 +71,6 @@ export default function CartPage() {
         const newBlueprints = { ...blueprints };
         
         results.forEach((bp) => {
-          // FIXED: Switched from 'g' to 'bp' to eliminate the ReferenceError runtime crash
           if (bp !== null) {
             newBlueprints[bp._id] = bp;
           }
@@ -100,7 +99,7 @@ export default function CartPage() {
 
       if (blueprint?.customizations) {
         blueprint.customizations.forEach((group) => {
-          const chosenLabel = item.selectedCustomizations[group.name];
+          const chosenLabel = item.selectedCustomizations?.[group.name];
           if (!chosenLabel) return;
 
           const matchingOption = group.options.find((o) => o.label === chosenLabel);
@@ -116,7 +115,8 @@ export default function CartPage() {
           }
         });
       } else {
-        Object.entries(item.selectedCustomizations).forEach(([key, value], index) => {
+        // ⚠️ FIXED: Applied ?? {} fallback operation framework parameter mapping layer
+        Object.entries(item.selectedCustomizations ?? {}).forEach(([key, value], index) => {
           if (index < 3) {
             coreHardware.push({ tabName: key, chosenLabel: String(value), isDefault: true });
           } else {
@@ -199,7 +199,6 @@ export default function CartPage() {
               </span>
             </div>
 
-            {/* Global Lead Time Module Display */}
             <div className="card transport-metadata-banner" style={{ background: "#f8fafb", padding: "12px", border: "1px solid #e2e8f0", marginTop: "1rem" }}>
               <span className="transport-tagline" style={{ display: "block", fontSize: "0.65rem", fontWeight: "700" }}>
                 ESTIMATED LOGISTICS ARRIVAL
@@ -220,11 +219,9 @@ export default function CartPage() {
             </p>
           </div>
 
-          {/* Maps through every individual configured product inside the basket cleanly */}
           {detailedCartItems.map((item, index) => (
             <div key={`${item.id}-${index}`} className="cart-product-workspace-card" style={{ borderBottom: index !== cartItems.length - 1 ? "2px dashed #e2e8f0" : "none", paddingBottom: "2.5rem", marginBottom: "1.5rem" }}>
               
-              {/* Product Header Row Summary */}
               <div style={{ display: "flex", gap: "1.5rem", alignItems: "center", marginBottom: "1.5rem" }}>
                 <img src={item.image} alt={item.title} style={{ width: "100px", height: "80px", objectFit: "cover", borderRadius: "6px", border: "1px solid #e2e8f0" }} />
                 <div>
@@ -243,7 +240,6 @@ export default function CartPage() {
                 </button>
               </div>
 
-              {/* Core Hardware Sub-grid matching the active system index context layout */}
               <div className="hardware-section-block" style={{ marginBottom: "1.5rem" }}>
                 <div className="section-title-header" style={{ fontSize: "0.95rem", marginBottom: "0.75rem" }}>
                   📦 Selected Upgrades Matrix {item.title}
@@ -261,7 +257,6 @@ export default function CartPage() {
                 </div>
               </div>
 
-              {/* Upgrades checklist mapping list context linked directly to item configuration properties */}
               <div className="upgrades-section-block">
                 <div className="upgrades-cards-stack">
                   {item.upgrades.map((upg) => (
@@ -290,7 +285,6 @@ export default function CartPage() {
             </div>
           ))}
 
-          {/* Action Trigger Buttons Footer Nav */}
           <div className="review-action-footer-row" style={{ marginTop: "2rem" }}>
             <button 
               type="button" 

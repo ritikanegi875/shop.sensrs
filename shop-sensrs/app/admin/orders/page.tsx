@@ -231,4 +231,4 @@ export default function AdminOrdersPage() {
       )}
     </section>
   );
-}7
+}

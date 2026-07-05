@@ -155,156 +155,191 @@ export default function AppointmentPage() {
   };
 
   if (loadingProfile) {
-    return <p className="empty-admin-records">Loading appointment form...</p>;
+    return <p className="text-center text-slate-400 font-medium py-16">Loading appointment form...</p>;
   }
 
   return (
-    <section className="checkout-form-page">
-      <div className="checkout-form-header">
-        <h1>Book Appointment</h1>
-        <p>Choose a saved address or enter details manually.</p>
-      </div>
+    <section className="bg-white min-h-screen px-4 py-8 md:px-12 flex flex-col items-center font-sans text-black">
+      <div className="w-full max-w-[900px]">
+        
+        {/* CHECKOUT HEADER SYSTEM */}
+        <div className="mb-6">
+          <h1 className="text-4xl font-bold tracking-tight mb-1">Book Appointment</h1>
+          <p className="text-sm text-slate-600 font-medium">Choose a saved address or enter details manually.</p>
+        </div>
 
-      {user?.addresses && user.addresses.length > 0 && (
-        <div className="saved-address-picker">
-          <h2>Choose Saved Address</h2>
-          <div className="saved-address-list">
-            {user.addresses.map((address) => (
-              <button
-                key={address._id}
-                type="button"
-                className={`saved-address-item ${
-                  selectedAddressId === address._id ? "active" : ""
-                }`}
-                onClick={() => handleAddressSelect(address._id)}
-              >
-                <strong>{address.label || "Address"}</strong>
-                <p>{address.fullName}</p>
-                <p>{address.phone}</p>
-                <p>{address.addressLine}</p>
-                <p>
-                  {address.city}, {address.state} - {address.pincode}
-                </p>
-              </button>
-            ))}
+        {/* DYNAMIC SAVED ADDRESS SLIDER PICKER */}
+        {user?.addresses && user.addresses.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-lg font-bold text-slate-800 mb-4 tracking-tight">Choose Saved Address</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {user.addresses.map((address) => (
+                <button
+                  key={address._id}
+                  type="button"
+                  onClick={() => handleAddressSelect(address._id)}
+                  className={`flex flex-col text-left p-4 rounded-xl border transition-all duration-150 bg-white ${
+                    selectedAddressId === address._id 
+                      ? "border-[#e11d48] ring-1 ring-[#e11d48]" 
+                      : "border-slate-300 hover:border-slate-400"
+                  }`}
+                >
+                  <strong className="text-sm font-bold text-slate-900 mb-1">{address.label || "Address"}</strong>
+                  <p className="text-xs text-slate-600 font-medium">{address.fullName}</p>
+                  <p className="text-xs text-slate-600 font-medium">{address.phone}</p>
+                  <p className="text-xs text-slate-500 mt-1">{address.addressLine}</p>
+                  <p className="text-xs text-slate-500">
+                    {address.city}, {address.state} - {address.pincode}
+                  </p>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <div className="checkout-form appointment-form">
-        <div className="form-group">
-          <label>Full Name</label>
-          <input
-            type="text"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            placeholder="Enter full name"
-          />
-        </div>
+        {/* MAIN METADATA FORM WRAPPER BOX */}
+        <div className="border border-slate-400 rounded-[28px] p-6 md:p-10 bg-white flex flex-col gap-5">
+          
+          {/* Row 1: Full Name & Email Address */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-bold text-slate-900">Full Name</label>
+              <input
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Enter full name"
+                className="w-full border border-slate-500 rounded-xl px-4 py-2.5 text-sm outline-none transition-colors duration-150 focus:border-slate-700 bg-white placeholder:text-slate-400 font-medium"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-bold text-slate-900">Email Address</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter email"
+                className="w-full border border-slate-500 rounded-xl px-4 py-2.5 text-sm outline-none transition-colors duration-150 focus:border-slate-700 bg-white placeholder:text-slate-400 font-medium"
+              />
+            </div>
+          </div>
 
-        <div className="form-group">
-          <label>Email Address</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Enter email"
-          />
-        </div>
+          {/* Row 2: Phone Number */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-bold text-slate-900">Phone Number</label>
+              <input
+                type="text"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="Enter phone number"
+                className="w-full border border-slate-500 rounded-xl px-4 py-2.5 text-sm outline-none transition-colors duration-150 focus:border-slate-700 bg-white placeholder:text-slate-400 font-medium"
+              />
+            </div>
+          </div>
 
-        <div className="form-group">
-          <label>Phone Number</label>
-          <input
-            type="text"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="Enter phone number"
-          />
-        </div>
+          {/* Row 3: Full-width Address Line */}
+          <div className="flex flex-col gap-1.5 w-full">
+            <label className="text-sm font-bold text-slate-900">Address Line</label>
+            <textarea
+              rows={3}
+              value={addressLine}
+              onChange={(e) => setAddressLine(e.target.value)}
+              placeholder="House no, street, locality, landmark"
+              className="w-full border border-slate-500 rounded-xl px-4 py-2.5 text-sm outline-none transition-colors duration-150 focus:border-slate-700 bg-white placeholder:text-slate-400 font-medium resize-y"
+            />
+          </div>
 
-        <div className="form-group full-width">
-          <label>Address Line</label>
-          <textarea
-            rows={4}
-            value={addressLine}
-            onChange={(e) => setAddressLine(e.target.value)}
-            placeholder="House no, street, locality, landmark"
-          />
-        </div>
+          {/* Row 4: City & State */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-bold text-slate-900">City</label>
+              <input
+                type="text"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="Enter city"
+                className="w-full border border-slate-500 rounded-xl px-4 py-2.5 text-sm outline-none transition-colors duration-150 focus:border-slate-700 bg-white placeholder:text-slate-400 font-medium"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-bold text-slate-900">State</label>
+              <input
+                type="text"
+                value={stateName}
+                onChange={(e) => setStateName(e.target.value)}
+                placeholder="Enter state"
+                className="w-full border border-slate-500 rounded-xl px-4 py-2.5 text-sm outline-none transition-colors duration-150 focus:border-slate-700 bg-white placeholder:text-slate-400 font-medium"
+              />
+            </div>
+          </div>
 
-        <div className="form-group">
-          <label>City</label>
-          <input
-            type="text"
-            value={city}
-            onChange={(e) => setCity(e.target.value)}
-            placeholder="Enter city"
-          />
-        </div>
+          {/* Row 5: Pincode & Appointment Date */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-bold text-slate-900">Pincode</label>
+              <input
+                type="text"
+                value={pincode}
+                onChange={(e) => setPincode(e.target.value)}
+                placeholder="Enter pincode"
+                className="w-full border border-slate-500 rounded-xl px-4 py-2.5 text-sm outline-none transition-colors duration-150 focus:border-slate-700 bg-white placeholder:text-slate-400 font-medium"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-bold text-slate-900">Appointment Date</label>
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="w-full border border-slate-500 rounded-xl px-4 py-2.5 text-sm outline-none transition-colors duration-150 focus:border-slate-700 bg-white text-slate-700 font-medium cursor-pointer min-h-[42px]"
+              />
+            </div>
+          </div>
 
-        <div className="form-group">
-          <label>State</label>
-          <input
-            type="text"
-            value={stateName}
-            onChange={(e) => setStateName(e.target.value)}
-            placeholder="Enter state"
-          />
-        </div>
+          {/* Row 6: Time Slot Picker Selector */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-bold text-slate-900">Time Slot</label>
+              <select
+                value={timeSlot}
+                onChange={(e) => setTimeSlot(e.target.value)}
+                className="w-full border border-slate-500 rounded-xl px-4 py-2.5 text-sm outline-none transition-colors duration-150 focus:border-slate-700 bg-white text-slate-700 font-medium cursor-pointer min-h-[42px]"
+              >
+                <option value="">Select time slot</option>
+                <option value="10:00 AM - 11:00 AM">10:00 AM - 11:00 AM</option>
+                <option value="11:00 AM - 12:00 PM">11:00 AM - 12:00 PM</option>
+                <option value="1:00 PM - 2:00 PM">1:00 PM - 2:00 PM</option>
+                <option value="2:00 PM - 3:00 PM">2:00 PM - 3:00 PM</option>
+                <option value="4:00 PM - 5:00 PM">4:00 PM - 5:00 PM</option>
+              </select>
+            </div>
+          </div>
 
-        <div className="form-group">
-          <label>Pincode</label>
-          <input
-            type="text"
-            value={pincode}
-            onChange={(e) => setPincode(e.target.value)}
-            placeholder="Enter pincode"
-          />
-        </div>
+          {/* Row 7: Full-width Message / Notes Area */}
+          <div className="flex flex-col gap-1.5 w-full">
+            <label className="text-sm font-bold text-slate-900">Message / Notes</label>
+            <textarea
+              rows={3}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Add any note for the appointment"
+              className="w-full border border-slate-500 rounded-xl px-4 py-2.5 text-sm outline-none transition-colors duration-150 focus:border-slate-700 bg-white placeholder:text-slate-400 font-medium resize-y"
+            />
+          </div>
 
-        <div className="form-group">
-          <label>Appointment Date</label>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-          />
-        </div>
+          {/* SUBMISSION FOOTER ACTION BUTTON */}
+          <div className="flex justify-end mt-4">
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={loading}
+              className="rounded-xl bg-[#e11d48] hover:bg-[#c2143a] text-white px-6 py-3 text-center text-sm font-semibold tracking-wide transition-colors duration-150 disabled:bg-slate-300 active:scale-95 shadow-sm"
+            >
+              {loading ? "Booking..." : "Book Appointment"}
+            </button>
+          </div>
 
-        <div className="form-group">
-          <label>Time Slot</label>
-          <select
-            value={timeSlot}
-            onChange={(e) => setTimeSlot(e.target.value)}
-          >
-            <option value="">Select time slot</option>
-            <option value="10:00 AM - 11:00 AM">10:00 AM - 11:00 AM</option>
-            <option value="11:00 AM - 12:00 PM">11:00 AM - 12:00 PM</option>
-            <option value="1:00 PM - 2:00 PM">1:00 PM - 2:00 PM</option>
-            <option value="2:00 PM - 3:00 PM">2:00 PM - 3:00 PM</option>
-            <option value="4:00 PM - 5:00 PM">4:00 PM - 5:00 PM</option>
-          </select>
-        </div>
-
-        <div className="form-group full-width">
-          <label>Message / Notes</label>
-          <textarea
-            rows={4}
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder="Add any note for the appointment"
-          />
-        </div>
-
-        <div className="form-actions">
-          <button
-            type="button"
-            className="primary-btn"
-            onClick={handleSubmit}
-            disabled={loading}
-          >
-            {loading ? "Booking..." : "Book Appointment"}
-          </button>
         </div>
       </div>
     </section>

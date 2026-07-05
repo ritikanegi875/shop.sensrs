@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Product from "@/models/Product";
+import mongoose from "mongoose"; // 1. Imported mongoose to access validation methods
 
 type Params = {
   params: Promise<{
@@ -11,6 +12,14 @@ type Params = {
 export async function GET(req: Request, { params }: Params) {
   try {
     const { id } = await params;
+
+    // 2. Validate route parameter structure before executing MongoDB queries
+    if (!mongoose.isValidObjectId(id)) {
+      return NextResponse.json(
+        { success: false, message: "Invalid product identifier format configuration" },
+        { status: 400 }
+      );
+    }
 
     await connectDB();
 
@@ -43,6 +52,15 @@ export async function GET(req: Request, { params }: Params) {
 export async function PATCH(req: Request, { params }: Params) {
   try {
     const { id } = await params;
+
+    // 3. Validate route parameter structure before updating database entries
+    if (!mongoose.isValidObjectId(id)) {
+      return NextResponse.json(
+        { success: false, message: "Invalid product identifier format configuration" },
+        { status: 400 }
+      );
+    }
+
     const body = await req.json();
 
     const {
@@ -76,7 +94,6 @@ export async function PATCH(req: Request, { params }: Params) {
                 return null;
               }
 
-              // Normalizes selection specs alongside dynamic mapping values safely
               let options = validOptions.map((option: any) => ({
                 label: option.label.trim(),
                 price: Number(option.price) || 0,
@@ -113,7 +130,6 @@ export async function PATCH(req: Request, { params }: Params) {
                 name: group.name.trim(),
                 type: "single",
                 description: group.description?.trim() || "",
-                // Persists custom dynamic headers correctly for individual tab instances
                 specLabels: {
                   label1: group.specLabels?.label1?.trim() || "Spec 1",
                   label2: group.specLabels?.label2?.trim() || "Spec 2",
@@ -169,6 +185,14 @@ export async function PATCH(req: Request, { params }: Params) {
 export async function DELETE(req: Request, { params }: Params) {
   try {
     const { id } = await params;
+
+    // 4. Validate route parameter structure before executing deletions
+    if (!mongoose.isValidObjectId(id)) {
+      return NextResponse.json(
+        { success: false, message: "Invalid product identifier format configuration" },
+        { status: 400 }
+      );
+    }
 
     await connectDB();
 

@@ -48,11 +48,9 @@ export default function CartPage() {
 
   const router = useRouter();
 
-  // State dictionary to cache blueprints for every distinct product in the cart
-  const [blueprints, setBlueprints] = useState<Record<string, ProductBlueprint>>({});
+  const [blueprints, setBridges] = useState<Record<string, ProductBlueprint>>({});
   const [loadingBlueprints, setLoadingBlueprints] = useState(true);
 
-  // Fetch missing master product blueprints dynamically for all items present in the cart
   useEffect(() => {
     async function loadAllBlueprints() {
       if (cartItems.length === 0) {
@@ -61,7 +59,7 @@ export default function CartPage() {
       }
       try {
         const fetchPromises = cartItems.map(async (item) => {
-          if (blueprints[item.id]) return null; // Already cached
+          if (blueprints[item.id]) return null;
           const res = await fetch(`/api/products/${item.id}`, { cache: "no-store" });
           const data = await res.json();
           return data.success && data.product ? data.product : null;
@@ -76,7 +74,7 @@ export default function CartPage() {
           }
         });
 
-        setBlueprints(newBlueprints);
+        setBridges(newBlueprints);
       } catch (error) {
         console.error("MULTIPLE BLUEPRINTS FETCH ERROR:", error);
       } finally {
@@ -87,7 +85,6 @@ export default function CartPage() {
     loadAllBlueprints();
   }, [cartItems]);
 
-  // Dynamic structural analyzer processed per separate item array index
   const detailedCartItems = useMemo(() => {
     return cartItems.map((item) => {
       const blueprint = blueprints[item.id];
@@ -115,7 +112,6 @@ export default function CartPage() {
           }
         });
       } else {
-        // ⚠️ FIXED: Applied ?? {} fallback operation framework parameter mapping layer
         Object.entries(item.selectedCustomizations ?? {}).forEach(([key, value], index) => {
           if (index < 3) {
             coreHardware.push({ tabName: key, chosenLabel: String(value), isDefault: true });
@@ -137,7 +133,6 @@ export default function CartPage() {
     });
   }, [cartItems, blueprints]);
 
-  // Grand totals calculations across all configured items
   const grandTotalInvestment = useMemo(() => {
     return detailedCartItems.reduce((sum, item) => sum + item.itemTotal, 0);
   }, [detailedCartItems]);
@@ -150,22 +145,25 @@ export default function CartPage() {
     return detailedCartItems.reduce((sum, item) => sum + item.upgradesCost, 0);
   }, [detailedCartItems]);
 
-
   if (loadingBlueprints && cartItems.length > 0) {
     return (
-      <main className="configurator-container empty-cart-container">
-        <p className="fallback-empty-text">Validating multi-product workspace profiles...</p>
+      <main className="min-h-screen bg-slate-50 flex items-center justify-center font-sans">
+        <p className="text-sm font-medium text-slate-400">Validating multi-product workspace profiles...</p>
       </main>
     );
   }
 
   if (cartItems.length === 0) {
     return (
-      <main className="configurator-container empty-cart-container">
-        <div className="card text-center empty-cart-card">
-          <h2 className="empty-cart-title">Your Cart is clear</h2>
-          <p className="empty-cart-message">No customized products found inside your active tracking storage.</p>
-          <button type="button" className="btn-save-config" onClick={() => router.push("/products")}>
+      <main className="min-h-screen bg-slate-50 flex items-center justify-center font-sans p-6">
+        <div className="w-full max-w-md rounded-3xl border border-slate-100 bg-white p-8 text-center shadow-[0_8px_30px_rgba(0,0,0,0.02)]">
+          <h2 className="text-2xl font-bold text-slate-800 mb-2">Your Cart is clear</h2>
+          <p className="text-sm text-slate-400 mb-6">No customized products found inside your active tracking storage.</p>
+          <button 
+            type="button" 
+            className="w-full rounded-xl bg-[#00241b] py-3 text-sm font-semibold text-white transition-colors duration-150 hover:bg-[#023629]" 
+            onClick={() => router.push("/products")}
+          >
             BROWSE PRODUCTS
           </button>
         </div>
@@ -174,130 +172,165 @@ export default function CartPage() {
   }
 
   return (
-    <main className="configurator-container">
-      <div className="configurator-layout review-layout">
+    <main className="bg-white min-h-screen font-sans px-6 py-12 md:px-12">
+      <div className="mx-auto max-w-[1400px] grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-12 items-start">
         
         {/* ================= LEFT GLOBAL SUMMARY RECEIPT PANEL ================= */}
-        <aside className="sidebar-panel">
-          <div className="card dynamic-receipt-card summary-receipt-card">
-            <h2 className="summary-receipt-title">Order Summary</h2>
+        <aside className="w-full lg:sticky lg:top-24">
+          <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-[0_8px_30px_rgba(0,0,0,0.02)] flex flex-col gap-5">
+            <h2 className="text-lg font-bold text-slate-800 border-b border-slate-100 pb-3">Order Summary</h2>
             
-            <div className="receipt-row cost-row-top">
-              <span className="row-label-muted">Total Base Platforms</span>
-              <span className="row-value-medium">₹{totalBaseCost.toLocaleString("en-IN")}</span>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-slate-400 font-medium">Total Base Platforms</span>
+              <span className="text-slate-700 font-semibold">Postal Pricing ₹{totalBaseCost.toLocaleString("en-IN")}</span>
             </div>
 
-            <div className="receipt-row cost-row-split">
-              <span className="row-label-muted">Combined Upgrades</span>
-              <span className="row-value-medium">+₹{totalUpgradesCost.toLocaleString("en-IN")}</span>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-slate-400 font-medium">Combined Upgrades</span>
+              <span className="text-slate-700 font-semibold">+₹{totalUpgradesCost.toLocaleString("en-IN")}</span>
             </div>
 
-            <div className="receipt-row total-investment-row">
-              <span className="total-label-bold">Total Amount</span>
-              <span className="total-grand-value">
+            <div className="flex justify-between items-end border-t border-slate-100 pt-4 mt-2">
+              <span className="text-sm font-bold text-slate-800">Total Amount</span>
+              <span className="font-serif text-2xl font-bold text-[#00241b] tracking-wide">
                 ₹{grandTotalInvestment.toLocaleString("en-IN")}
               </span>
             </div>
 
-            <div className="card transport-metadata-banner" style={{ background: "#f8fafb", padding: "12px", border: "1px solid #e2e8f0", marginTop: "1rem" }}>
-              <span className="transport-tagline" style={{ display: "block", fontSize: "0.65rem", fontWeight: "700" }}>
+            {/* Estimated Shipping Badge Container */}
+            <div className="rounded-2xl border border-slate-200 bg-[#f8fafb] p-4 mt-2 flex flex-col gap-1">
+              <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
                 ESTIMATED LOGISTICS ARRIVAL
               </span>
-              <p style={{ fontSize: "1.1rem", fontWeight: "600", color: "#00241b", marginTop: "0.25rem" }}>4-6 Weeks Shipment</p>
-              <p style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "0.15rem" }}>Hub: SEnSRS (IIT ROPAR)</p>
+              <p className="text-base font-bold text-[#00241b]">4-6 Weeks Shipment</p>
+              <p className="text-xs text-slate-400 font-medium">Hub: SEnSRS (IIT ROPAR)</p>
             </div>
           </div>
         </aside>
 
         {/* ================= RIGHT MULTI-PRODUCT SYSTEM GRID INTERFACE ================= */}
-        <section className="main-configurator-panel layout-content-stack">
+        <section className="flex flex-col gap-8">
           
-          <div className="review-header-intro">
-            <h1 className="review-page-title">Final Review: Your Configurations ({cartItems.length})</h1>
-            <p className="review-page-subtitle">
+          <div className="flex flex-col gap-1">
+            <h1 className="font-serif text-[2.4rem] font-normal text-[#00241b] leading-tight">
+              Final Review: Your Configurations ({cartItems.length})
+            </h1>
+            <p className="text-slate-400 text-sm leading-relaxed">
               Verify your equipment metrics and specifications breakdown for each product before checking out.
             </p>
           </div>
 
-          {detailedCartItems.map((item, index) => (
-            <div key={`${item.id}-${index}`} className="cart-product-workspace-card" style={{ borderBottom: index !== cartItems.length - 1 ? "2px dashed #e2e8f0" : "none", paddingBottom: "2.5rem", marginBottom: "1.5rem" }}>
-              
-              <div style={{ display: "flex", gap: "1.5rem", alignItems: "center", marginBottom: "1.5rem" }}>
-                <img src={item.image} alt={item.title} style={{ width: "100px", height: "80px", objectFit: "cover", borderRadius: "6px", border: "1px solid #e2e8f0" }} />
-                <div>
-                  <h2 style={{ fontFamily: "Georgia, serif", fontSize: "1.6rem", color: "#00241b", margin: 0 }}>
-                    {item.title} <span style={{ fontSize: "1rem", color: "#64748b", fontFamily: "sans-serif" }}>({item.quantity}x unit)</span>
-                  </h2>
-                  <p style={{ fontSize: "0.85rem", color: "#64748b", marginTop: "0.2rem" }}>Individual System Total: <strong>₹{item.itemTotal.toLocaleString("en-IN")}</strong></p>
-                </div>
-                <button 
-                  type="button" 
-                  className="btn-clear-profile" 
-                  style={{ marginLeft: "auto", width: "auto", marginTop: 0 }}
-                  onClick={() => removeFromCart(item.id, item.selectedCustomizations)}
-                >
-                  Remove Item
-                </button>
-              </div>
-
-              <div className="hardware-section-block" style={{ marginBottom: "1.5rem" }}>
-                <div className="section-title-header" style={{ fontSize: "0.95rem", marginBottom: "0.75rem" }}>
-                  📦 Selected Upgrades Matrix {item.title}
-                </div>
-                <div className="hardware-cards-grid">
-                  {item.coreHardware.map((hw) => (
-                    <div key={hw.tabName} className="card hardware-metric-card" style={{ padding: "1rem" }}>
-                      <span className="hardware-metric-tag">{hw.tabName}</span>
-                      <span className="hardware-metric-name" style={{ fontSize: "0.95rem" }}>{hw.chosenLabel}</span>
-                      <span className={`hardware-system-badge ${hw.isDefault ? "standard-badge" : "upgrade-badge"}`}>
-                        {hw.isDefault ? "STANDARD" : "UPGRADE"}
-                      </span>
+          <div className="flex flex-col gap-10">
+            {detailedCartItems.map((item, index) => (
+              <div 
+                key={`${item.id}-${index}`} 
+                className={`flex flex-col gap-6 ${
+                  index !== cartItems.length - 1 ? "border-b-2 border-dashed border-slate-200 pb-10" : ""
+                }`}
+              >
+                {/* Header Sub-Row */}
+                <div className="flex flex-col sm:flex-row gap-5 sm:items-center justify-between w-full">
+                  <div className="flex items-center gap-5">
+                    <img 
+                      src={item.image} 
+                      alt={item.title} 
+                      className="w-[100px] h-[80px] object-cover rounded-xl border border-slate-200 bg-slate-50 shrink-0" 
+                    />
+                    <div>
+                      <h2 className="font-serif text-2xl font-normal text-[#00241b] leading-snug">
+                        {item.title} <span className="font-sans text-sm text-slate-400 font-normal">({item.quantity}x unit)</span>
+                      </h2>
+                      <p className="text-xs text-slate-400 mt-1 font-medium">
+                        Individual System Total: <strong className="text-slate-700 font-semibold">₹{item.itemTotal.toLocaleString("en-IN")}</strong>
+                      </p>
                     </div>
-                  ))}
+                  </div>
+                  
+                  <button 
+                    type="button" 
+                    onClick={() => removeFromCart(item.id, item.selectedCustomizations)}
+                    className="text-xs font-semibold text-rose-600 hover:underline self-start sm:self-center transition-colors duration-150"
+                  >
+                    Remove Item
+                  </button>
                 </div>
-              </div>
 
-              <div className="upgrades-section-block">
-                <div className="upgrades-cards-stack">
+                {/* Core Hardware Metrics Grid Layout */}
+                <div className="flex flex-col gap-3">
+                  <div className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+                    <span>📦</span> Selected Upgrades Matrix {item.title}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {item.coreHardware.map((hw) => (
+                      <div 
+                        key={hw.tabName} 
+                        className="flex flex-col gap-1 p-4 rounded-xl border border-slate-100 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.01)] relative overflow-hidden"
+                      >
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{hw.tabName}</span>
+                        <span className="text-sm font-semibold text-slate-800 pr-16">{hw.chosenLabel}</span>
+                        <span 
+                          className={`absolute right-3 top-1/2 -translate-y-1/2 rounded px-2 py-0.5 text-[9px] font-bold tracking-wide uppercase ${
+                            hw.isDefault 
+                              ? "bg-emerald-50 text-emerald-700 border border-emerald-100" 
+                              : "bg-amber-50 text-amber-700 border border-amber-100"
+                          }`}
+                        >
+                          {hw.isDefault ? "STANDARD" : "UPGRADE"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Additional Upgrade Modification Rows Stack */}
+                <div className="flex flex-col gap-3">
                   {item.upgrades.map((upg) => (
-                    <div key={upg.tabName} className={`card upgrade-item-row-card ${upg.isDefault ? "static-included-card" : ""}`} style={{ padding: "1rem 1.5rem" }}>
-                      <div className="upgrade-meta-content">
-                        <h4 className="upgrade-title-text" style={{ fontSize: "0.95rem" }}>{upg.chosenLabel}</h4>
-                        <span className="upgrade-description-sub" style={{ fontSize: "0.75rem" }}>Subsystem modification parameter for {upg.tabName}.</span>
+                    <div 
+                      key={upg.tabName} 
+                      className="flex items-center justify-between p-4 px-6 rounded-xl border border-slate-100 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.01)]"
+                    >
+                      <div className="flex flex-col gap-0.5">
+                        <h4 className="text-sm font-semibold text-slate-800">{upg.chosenLabel}</h4>
+                        <span className="text-xs text-slate-400">Subsystem modification parameter for {upg.tabName}.</span>
                       </div>
-                      <span className={`upgrade-tier-pill ${upg.isDefault ? "success-pill" : ""}`} style={{ fontSize: "0.75rem" }}>
-                        {upg.isDefault ? "INCLUDED" : "UPGRADE"}
+                      <span className="rounded bg-amber-50 text-amber-700 border border-amber-100 px-2.5 py-0.5 text-[10px] font-bold tracking-wide uppercase">
+                        UPGRADE
                       </span>
                     </div>
                   ))}
+
+                  {/* Fallback Included Notification Panel */}
                   {item.upgrades.length === 0 && (
-                    <div className="card upgrade-item-row-card static-included-card" style={{ padding: "1rem 1.5rem" }}>
-                      <div className="upgrade-meta-content">
-                        <h4 className="upgrade-title-text" style={{ fontSize: "0.95rem" }}>Base Standard Subsystem Selection</h4>
-                        <span className="upgrade-description-sub" style={{ fontSize: "0.75rem" }}>All components lines matching original base included.</span>
+                    <div className="flex items-center justify-between p-4 px-6 rounded-xl border border-emerald-600/20 bg-emerald-50/20">
+                      <div className="flex flex-col gap-0.5">
+                        <h4 className="text-sm font-semibold text-[#00241b]">Base Standard Subsystem Selection</h4>
+                        <span className="text-xs text-slate-400">All components lines matching original base included.</span>
                       </div>
-                      <span className="upgrade-tier-pill success-pill" style={{ fontSize: "0.75rem" }}>INCLUDED</span>
+                      <span className="rounded bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-bold tracking-wide uppercase">
+                        INCLUDED
+                      </span>
                     </div>
                   )}
                 </div>
+
               </div>
+            ))}
+          </div>
 
-            </div>
-          ))}
-
-          <div className="review-action-footer-row" style={{ marginTop: "2rem" }}>
+          {/* Action Trigger Flow Buttons Row */}
+          <div className="flex flex-wrap items-center gap-4 mt-6 border-t border-slate-100 pt-8">
             <button 
               type="button" 
-              className="btn-save-config footer-checkout-btn" 
               onClick={() => router.push("/checkout/buy-now")}
+              className="bg-[#00241b] hover:bg-[#023629] text-white px-8 py-4 text-sm font-semibold rounded-xl cursor-pointer transition-colors duration-150 flex items-center gap-2 active:scale-98 shadow-sm"
             >
               Place Order & Deposit <span>➔</span>
             </button>
 
             <button 
               type="button" 
-              className="btn-appointment-redirect"
               onClick={() => router.push("/checkout/book-appointment")}
+              className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 px-6 py-4 text-sm font-semibold rounded-xl cursor-pointer transition-colors duration-150 flex items-center gap-2 active:scale-98"
             >
               🗓️ Book an Appointment
             </button>

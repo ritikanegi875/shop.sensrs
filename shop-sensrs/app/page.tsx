@@ -25,7 +25,6 @@ export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // State variables tracking slider sets and indexing values
   const [banners, setBanners] = useState<Banner[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -61,7 +60,6 @@ export default function HomePage() {
     fetchProducts();
   }, []);
 
-  // FIXED: Auto-sliding background interval rules loop forward every 3000ms
   useEffect(() => {
     if (banners.length <= 1) return;
 
@@ -79,252 +77,198 @@ export default function HomePage() {
     }
   };
 
-  // Safely fallback to high-quality placeholder image if database contains no records
   const currentHeroBg = useMemo(() => {
     if (banners.length > 0 && banners[activeIndex]) {
       return banners[activeIndex].imageUrl;
     }
-    return;
+    return "";
   }, [banners, activeIndex]);
 
   return (
-    <main className="premium-home-container">
-      {/* Integrated Single File CSS Styling Rules Blueprint */}
-      <style dangerouslySetInnerHTML={{__html: `
-        .premium-home-container { background: #ffffff; color: #0c1c18; font-family: system-ui, -apple-system, sans-serif; overflow-x: hidden; }
-        
-        /* 1. Full-Height Cinematic Hero Layout Section */
-        .cinematic-hero { 
-          position: relative; 
-          width: 100%; 
-          min-height: 100vh; 
-          display: flex; 
-          align-items: center; 
-          background-color: #01140f;
-          background-position: center;
-          background-size: cover;
-          background-repeat: no-repeat;
-          padding: 4rem 2rem; 
-          box-sizing: border-box; 
-          transition: background-image 0.8s ease-in-out; /* FIXED: Cross-fades sliding changes cleanly */
-        }
-        .hero-text-content { position: relative; max-width: 750px; z-index: 2; padding-left: 3rem; color: #ffffff; }
-        .hero-badge-tag { display: inline-block; background: rgba(226, 242, 237, 0.15); color: #dfc886; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.15em; padding: 0.4rem 0.8rem; border-radius: 4px; text-transform: uppercase; margin-bottom: 1.5rem; border: 1px solid rgba(226,242,237,0.1); }
-        .hero-text-content h1 { font-family: Georgia, serif; font-size: 4rem; line-height: 1.1; font-weight: 400; margin: 0 0 1.5rem 0; color: #ffffff; }
-        .hero-text-content p { font-size: 1.15rem; line-height: 1.6; color: #cbd5e1; margin: 0 0 2.5rem 0; max-width: 600px; }
-        .hero-actions-row { display: flex; gap: 1.25rem; }
-        .btn-primary-gold { background: #dfc886; color: #01140f; border: none; padding: 1rem 2rem; font-size: 1rem; font-weight: 600; border-radius: 6px; cursor: pointer; transition: background 0.15s; display: flex; align-items: center; gap: 0.5rem; }
-        .btn-primary-gold:hover { background: #d0b36b; }
-        .btn-secondary-outline { background: rgba(255,255,255,0.08); color: #ffffff; border: 1px solid rgba(255,255,255,0.2); padding: 1rem 2rem; font-size: 1rem; font-weight: 600; border-radius: 6px; cursor: pointer; transition: background 0.15s; }
-        .btn-secondary-outline:hover { background: rgba(255,255,255,0.15); }
+    <main className="bg-white text-[#0c1c18] font-sans overflow-x-hidden">
 
-        /* Carousel Navigation Dots */
-        .banner-carousel-dots { position: absolute; bottom: 5rem; left: 50%; transform: translateX(-50%); display: flex; gap: 0.5rem; z-index: 3; }
-        .carousel-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255, 255, 255, 0.4); border: none; cursor: pointer; padding: 0; transition: background 0.2s, transform 0.2s; }
-        .carousel-dot.active { background: #dfc886; transform: scale(1.25); }
-
-        .scroll-prompt-wrapper {
-          position: absolute;
-          bottom: 1.5rem;
-          left: 50%;
-          transform: translateX(-50%);
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 0.5rem;
-          color: #ffffff;
-          font-size: 0.75rem;
-          font-weight: 600;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          cursor: pointer;
-          opacity: 0.8;
-          transition: opacity 0.2s, transform 0.2s;
-          z-index: 3;
-        }
-        .scroll-prompt-wrapper:hover { opacity: 1; transform: translate(-50%, -3px); }
-        .mouse-wheel-track { width: 24px; height: 38px; border: 2px solid #ffffff; border-radius: 12px; position: relative; }
-        .mouse-wheel-dot { width: 4px; height: 8px; background-color: #dfc886; position: absolute; top: 6px; left: 50%; transform: translateX(-50%); border-radius: 2px; animation: wheel-slide 1.6s infinite ease-in-out; }
-
-        @keyframes wheel-slide {
-          0% { opacity: 0; top: 6px; }
-          20% { opacity: 1; }
-          80% { opacity: 1; top: 18px; }
-          100% { opacity: 0; top: 18px; }
-        }
-
-        .scrolled-content-wrapper { position: relative; z-index: 2; background: #ffffff; }
-        .flagship-showcase-section { max-width: 1300px; margin: 0 auto; padding: 6rem 2rem; display: grid; grid-template-columns: 1.1fr 1fr; gap: 4rem; align-items: center; }
-        .flagship-info-pane { display: flex; flex-direction: column; gap: 1.5rem; }
-        .flagship-tag { display: inline-block; align-self: flex-start; background: #fdf3e7; color: #c07c34; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 0.35rem 0.75rem; border-radius: 4px; }
-        .flagship-info-pane h2 { font-family: Georgia, serif; font-size: 2.8rem; font-weight: 400; color: #00241b; margin: 0; }
-        .flagship-info-pane p { color: #475569; font-size: 1.05rem; line-height: 1.6; margin: 0; }
-        .flagship-metrics-subgrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem 1.5rem; margin-top: 1rem; }
-        .flagship-metric-box { display: flex; gap: 1rem; }
-        .metric-icon-frame { font-size: 1.5rem; padding-top: 0.2rem; }
-        .metric-text-wrapper h4 { font-size: 1.05rem; font-weight: 600; color: #0f172a; margin: 0 0 0.25rem 0; }
-        .metric-text-wrapper p { font-size: 0.875rem; color: #64748b; line-height: 1.4; margin: 0; }
-        .flagship-render-wrapper img { width: 100%; height: auto; border-radius: 16px; object-fit: cover; box-shadow: 0 20px 40px -15px rgba(0,36,27,0.15); }
-
-        .benchmarks-section { background: #f8fafb; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; padding: 6rem 2rem; }
-        .benchmarks-inner { max-width: 1300px; margin: 0 auto; }
-        .section-center-head { text-align: center; margin-bottom: 4rem; }
-        .section-center-head h2 { font-family: Georgia, serif; font-size: 2.6rem; font-weight: 400; color: #00241b; margin: 0 0 0.5rem 0; }
-        .section-center-head p { color: #64748b; font-size: 1.05rem; margin: 0; }
-        .replica-benchmarks-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem; }
-        .benchmark-mock-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; display: grid; grid-template-columns: 220px 1fr; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); }
-        .mock-card-image { position: relative; background: #01140f; min-height: 250px; }
-        .mock-card-image img { width: 100%; height: 100%; object-fit: cover; }
-        .mock-card-details { padding: 2rem; display: flex; flex-direction: column; gap: 0.75rem; position: relative; }
-        .mock-badge { position: absolute; top: 1.5rem; right: 1.5rem; background: #f1f5f9; color: #475569; font-size: 0.65rem; font-weight: 700; padding: 0.25rem 0.5rem; border-radius: 4px; letter-spacing: 0.05em; text-transform: uppercase; }
-        .mock-card-details h3 { font-family: Georgia, serif; font-size: 1.4rem; color: #00241b; margin: 0; }
-        .mock-card-details p { color: #64748b; font-size: 0.9rem; line-height: 1.5; margin: 0; }
-        .mock-price-tag { font-size: 1.5rem; font-weight: 600; color: #0c1c18; margin-top: auto; }
-        .btn-mock-action { align-self: flex-start; background: #00241b; color: white; border: none; padding: 0.65rem 1.25rem; font-size: 0.85rem; font-weight: 600; border-radius: 6px; cursor: pointer; transition: background 0.15s; }
-        .btn-mock-action:hover { background: #023629; }
-        .btn-mock-outline { align-self: flex-start; background: #ffffff; color: #00241b; border: 1px solid #cbd5e1; padding: 0.65rem 1.25rem; font-size: 0.85rem; font-weight: 600; border-radius: 6px; cursor: pointer; transition: background 0.15s; }
-        .btn-mock-outline:hover { background: #f8fafb; }
-
-        .catalog-showcase-section { max-width: 1300px; margin: 6rem auto; padding: 0 2rem; }
-        .replica-products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(285px, 1fr)); gap: 1.5rem; margin-top: 3rem; }
-      `}} />
-
-      {/* ================= SECTION 1: CINEMATIC REPLICA HERO WITH AUTOMATIC BACKGROUND INTERVALS ================= */}
+      {/* ================= SECTION 1: CINEMATIC HERO SECTION ================= */}
       <section 
-        className="cinematic-hero"
+        className="relative w-full min-height-[100vh] min-h-screen flex items-center bg-[#01140f] bg-center bg-cover bg-no-repeat px-8 py-16 transition-[background-image] duration-750 ease-in-out"
         style={{
-          backgroundImage: `linear-gradient(to right, rgba(1, 20, 15, 0.9) 30%, rgba(1, 20, 15, 0.4) 100%), url('${currentHeroBg}')`
+          backgroundImage: currentHeroBg 
+            ? `linear-gradient(to right, rgba(1, 20, 15, 0.95) 30%, rgba(1, 20, 15, 0.5) 100%), url('${currentHeroBg}')`
+            : `linear-gradient(to right, rgba(1, 20, 15, 0.95) 30%, rgba(1, 20, 15, 0.5) 100%)`
         }}
       >
-        <div className="hero-text-content">
-          <span className="hero-badge-tag">⚓ INNOVATION UNDER SURFACE</span>
-          <h1>Precision Marine Engineering</h1>
-          <p>
+        <div className="relative max-w-[750px] z-10 pl-4 md:pl-12 text-white">
+          <span className="inline-block bg-white/10 text-[#dfc886] text-xs font-bold tracking-[0.15em] px-3 py-1.5 rounded border border-white/10 uppercase mb-6">
+            ⚓ INNOVATION UNDER SURFACE
+          </span>
+          <h1 className="font-serif text-5xl md:text-6xl lg:text-[4rem] leading-[1.1] font-normal mb-6 text-white">
+            Precision Marine Engineering
+          </h1>
+          <p className="text-base md:text-lg text-slate-300 leading-relaxed mb-10 max-w-[600px]">
             Pioneering the future of autonomous marine exploration with industrial-grade unmanned surface vehicles and high-fidelity sensory arrays.
           </p>
-          <div className="hero-actions-row">
-            <button type="button" className="btn-primary-gold" onClick={() => router.push("/products")}>
+          <div className="flex flex-wrap gap-5">
+            <button 
+              type="button" 
+              className="bg-[#dfc886] hover:bg-[#d0b36b] text-[#01140f] border-none px-8 py-4 text-base font-semibold rounded-md cursor-pointer transition-colors duration-150 flex items-center gap-2" 
+              onClick={() => router.push("/products")}
+            >
               Explore Systems <span>➔</span>
             </button>
-            <button type="button" className="btn-secondary-outline" onClick={handleScrollToContent}>
+            <button 
+              type="button" 
+              className="bg-white/10 hover:bg-white/15 text-white border border-white/20 px-8 py-4 text-base font-semibold rounded-md cursor-pointer transition-colors duration-150" 
+              onClick={handleScrollToContent}
+            >
               Watch Tech Demo
             </button>
           </div>
         </div>
 
-        {/* Dynamic Pagination Carousel Dots Indicators */}
+        {/* Dynamic Carousel Navigation Dots */}
         {banners.length > 1 && (
-          <div className="banner-carousel-dots">
+          <div className="absolute bottom-20 left-1/2 -translate-x-1/2 flex gap-2 z-10">
             {banners.map((_, dotIndex) => (
               <button
                 key={dotIndex}
                 type="button"
-                className={`carousel-dot ${activeIndex === dotIndex ? "active" : ""}`}
+                className={`w-2 h-2 rounded-full border-none p-0 cursor-pointer transition-all duration-200 ${
+                  activeIndex === dotIndex ? "bg-[#dfc886] scale-125" : "bg-white/40"
+                }`}
                 onClick={() => setActiveIndex(dotIndex)}
               />
             ))}
           </div>
         )}
 
-        <div className="scroll-prompt-wrapper" onClick={handleScrollToContent}>
+        {/* Mouse/Scroll Prompt Indicator */}
+        <div 
+          className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-white text-[10px] font-bold tracking-widest uppercase cursor-pointer opacity-80 hover:opacity-100 hover:-translate-y-0.5 transition-all duration-200 z-10" 
+          onClick={handleScrollToContent}
+        >
           <span>Scroll to Explore</span>
-          <div className="mouse-wheel-track">
-            <div className="mouse-wheel-dot" />
+          <div className="w-6 h-9 border-2 border-white rounded-xl relative">
+            <div className="w-1 h-2 bg-[#dfc886] rounded-sm absolute top-1.5 left-1/2 -translate-x-1/2 animate-[bounce_1.6s_infinite_ease-in-out]" />
           </div>
         </div>
       </section>
 
-      {/* ================= SCROLLING TARGET COMPONENT WRAPPER ================= */}
-      <div id="main-catalog-content" className="scrolled-content-wrapper">
+      {/* ================= SCROLLING TARGET CONTENT WRAPPER ================= */}
+      <div id="main-catalog-content" className="relative z-10 bg-white">
         
         <FeatureBar />
 
         {/* ================= SECTION 2: FLAGSHIP USV FEATURE CARD ================= */}
-        <section className="flagship-showcase-section">
-          <div className="flagship-info-pane">
-            <span className="flagship-tag">FLAGSHIP TECHNOLOGY</span>
-            <h2>BathyCat USV System</h2>
-            <p>
+        <section className="max-w-[1300px] mx-auto px-8 py-24 grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-16 items-center">
+          <div className="flex flex-col gap-6">
+            <span className="inline-block self-start bg-[#fdf3e7] text-[#c07c34] text-xs font-bold tracking-wider uppercase px-3 py-1.5 rounded">
+              FLAGSHIP TECHNOLOGY
+            </span>
+            <h2 className="font-serif text-[2.5rem] md:text-[2.8rem] font-normal text-[#00241b] leading-tight m-0">
+              BathyCat USV System
+            </h2>
+            <p className="text-slate-600 text-[1.05rem] leading-relaxed m-0">
               The BathyCat is our flagship Unmanned Surface Vehicle, engineered for high-precision hydrographic surveys in challenging littoral environments. Its modular catamaran hull provides unparalleled stability and payload flexibility.
             </p>
             
-            <div className="flagship-metrics-subgrid">
-              <div className="flagship-metric-box">
-                <span className="metric-icon-frame">🌊</span>
-                <div className="metric-text-wrapper">
-                  <h4>Dual-Hull Stability</h4>
-                  <p>Optimized geometry for minimal drag and maximum roll resistance.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-8 mt-4">
+              <div className="flex gap-4">
+                <span className="text-2xl pt-0.5">🌊</span>
+                <div className="flex flex-col gap-1">
+                  <h4 className="text-[1.05rem] font-semibold text-slate-900 m-0">Dual-Hull Stability</h4>
+                  <p className="text-sm text-slate-500 leading-normal m-0">Optimized geometry for minimal drag and maximum roll resistance.</p>
                 </div>
               </div>
 
-              <div className="flagship-metric-box">
-                <span className="metric-icon-frame">🔋</span>
-                <div className="metric-text-wrapper">
-                  <h4>12h Endurance</h4>
-                  <p>High-density lithium-ion arrays configured for extended mission profiles.</p>
+              <div className="flex gap-4">
+                <span className="text-2xl pt-0.5">🔋</span>
+                <div className="flex flex-col gap-1">
+                  <h4 className="text-[1.05rem] font-semibold text-slate-900 m-0">12h Endurance</h4>
+                  <p className="text-sm text-slate-500 leading-normal m-0">High-density lithium-ion arrays configured for extended mission profiles.</p>
                 </div>
               </div>
 
-              <div className="flagship-metric-box">
-                <span className="metric-icon-frame">📡</span>
-                <div className="metric-text-wrapper">
-                  <h4>Long-Range Link</h4>
-                  <p>Encrypted COFDM telemetry architecture for reliable control up to 5km.</p>
+              <div className="flex gap-4">
+                <span className="text-2xl pt-0.5">📡</span>
+                <div className="flex flex-col gap-1">
+                  <h4 className="text-[1.05rem] font-semibold text-slate-900 m-0">Long-Range Link</h4>
+                  <p className="text-sm text-slate-500 leading-normal m-0">Encrypted COFDM telemetry architecture for reliable control up to 5km.</p>
                 </div>
               </div>
 
-              <div className="flagship-metric-box">
-                <span className="metric-icon-frame">🏗️</span>
-                <div className="metric-text-wrapper">
-                  <h4>Modular Rails</h4>
-                  <p>Universal system for ADCPs and high-end sensors.</p>
+              <div className="flex gap-4">
+                <span className="text-2xl pt-0.5">🏗️</span>
+                <div className="flex flex-col gap-1">
+                  <h4 className="text-[1.05rem] font-semibold text-slate-900 m-0">Modular Rails</h4>
+                  <p className="text-sm text-slate-500 leading-normal m-0">Universal system for ADCPs and high-end sensors.</p>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="flagship-render-wrapper">
+          <div className="w-full">
             <img 
               src="https://images.unsplash.com/photo-1559136555-9303baea8ebd?q=80&w=1200" 
               alt="BathyCat Flagship Catamaran Model" 
+              className="w-full h-auto rounded-2xl object-cover shadow-[0_20px_40px_-15px_rgba(0,36,27,0.15)]"
             />
           </div>
         </section>
 
         {/* ================= SECTION 3: INDUSTRY BENCHMARKS GRID MATRIX ================= */}
-        <section className="benchmarks-section">
-          <div className="benchmarks-inner">
-            <div className="section-center-head">
-              <h2>Industry Benchmarks</h2>
-              <p>Our most trusted systems for global marine operations, verified by leading hydrographic agencies.</p>
+        <section className="bg-[#f8fafb] border-t border-b border-slate-200 px-8 py-24">
+          <div className="max-w-[1300px] mx-auto">
+            <div className="text-center mb-16">
+              <h2 className="font-serif text-[2.5rem] md:text-[2.6rem] font-normal text-[#00241b] mb-2">
+                Industry Benchmarks
+              </h2>
+              <p className="text-slate-500 text-[1.05rem]">
+                Our most trusted systems for global marine operations, verified by leading hydrographic agencies.
+              </p>
             </div>
 
-            <div className="replica-benchmarks-grid">
-              <div className="benchmark-mock-card">
-                <div className="mock-card-image">
-                  <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=500" alt="HydroDrone X" />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Benchmark Product 1 */}
+              <div className="bg-white border border-slate-200 rounded-xl grid grid-cols-1 sm:grid-cols-[220px_1fr] overflow-hidden shadow-[0_4px_6px_-1px_rgba(0,0,0,0.02)]">
+                <div className="relative bg-[#01140f] min-h-[250px]">
+                  <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=500" alt="HydroDrone X" className="w-full h-full object-cover" />
                 </div>
-                <div className="mock-card-details">
-                  <span className="mock-badge">TOP RATED</span>
-                  <h3>HydroDrone X</h3>
-                  <p>Portable, ultra-lightweight autonomous boat designed for high-resolution rapid inland water mapping and environmental monitoring.</p>
-                  <div className="mock-price-tag">₹12,499.00</div>
-                  <button type="button" className="btn-mock-action" onClick={() => router.push("/products")}>
+                <div className="p-8 flex flex-col gap-3 relative">
+                  <span className="absolute top-6 right-6 bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-1 rounded tracking-wide uppercase">
+                    TOP RATED
+                  </span>
+                  <h3 className="font-serif text-2xl text-[#00241b] m-0 pr-16">HydroDrone X</h3>
+                  <p className="text-slate-500 text-sm leading-relaxed m-0">
+                    Portable, ultra-lightweight autonomous boat designed for high-resolution rapid inland water mapping and environmental monitoring.
+                  </p>
+                  <div className="text-2xl font-semibold text-[#0c1c18] mt-auto pt-4">₹12,499.00</div>
+                  <button 
+                    type="button" 
+                    className="self-start bg-[#00241b] hover:bg-[#023629] text-white border-none px-5 py-2.5 text-sm font-semibold rounded-md cursor-pointer transition-colors duration-150 mt-2" 
+                    onClick={() => router.push("/products")}
+                  >
                     Add to Configuration
                   </button>
                 </div>
               </div>
 
-              <div className="benchmark-mock-card">
-                <div className="mock-card-image">
-                  <img src="https://images.unsplash.com/photo-1551244072-5d12893278ab?q=80&w=500" alt="SonarArray Pro" />
+              {/* Benchmark Product 2 */}
+              <div className="bg-white border border-slate-200 rounded-xl grid grid-cols-1 sm:grid-cols-[220px_1fr] overflow-hidden shadow-[0_4px_6px_-1px_rgba(0,0,0,0.02)]">
+                <div className="relative bg-[#01140f] min-h-[250px]">
+                  <img src="https://images.unsplash.com/photo-1551244072-5d12893278ab?q=80&w=500" alt="SonarArray Pro" className="w-full h-full object-cover" />
                 </div>
-                <div className="mock-card-details">
-                  <span className="mock-badge" style={{ color: "#c07c34" }}>HIGH ACCURACY</span>
-                  <h3>SonarArray Pro</h3>
-                  <p>Single-beam dual-frequency transducer with integrated motion compensation layer and 0.01m accuracy threshold for industrial use.</p>
-                  <div className="mock-price-tag">₹4,850.00</div>
-                  <button type="button" className="btn-mock-outline">
+                <div className="p-8 flex flex-col gap-3 relative">
+                  <span className="absolute top-6 right-6 bg-slate-100 text-[#c07c34] text-[10px] font-bold px-2 py-1 rounded tracking-wide uppercase">
+                    HIGH ACCURACY
+                  </span>
+                  <h3 className="font-serif text-2xl text-[#00241b] m-0 pr-24">SonarArray Pro</h3>
+                  <p className="text-slate-500 text-sm leading-relaxed m-0">
+                    Single-beam dual-frequency transducer with integrated motion compensation layer and 0.01m accuracy threshold for industrial use.
+                  </p>
+                  <div className="text-2xl font-semibold text-[#0c1c18] mt-auto pt-4">₹4,850.00</div>
+                  <button 
+                    type="button" 
+                    className="self-start bg-white hover:bg-[#f8fafb] text-[#00241b] border border-slate-300 px-5 py-2.5 text-sm font-semibold rounded-md cursor-pointer transition-colors duration-150 mt-2"
+                  >
                     View Technical Details
                   </button>
                 </div>
@@ -334,18 +278,22 @@ export default function HomePage() {
         </section>
 
         {/* ================= SECTION 4: CATALOG PRODUCT PROFILE ENTRIES ================= */}
-        <section className="catalog-showcase-section">
-          <div className="section-center-head" style={{ marginBottom: "2rem" }}>
-            <h2>Our Live Catalog Profiles</h2>
-            <p>Deploy operational asset blueprints synchronizing with external cloud compilation nodes.</p>
+        <section className="max-w-[1300px] mx-auto px-8 my-24">
+          <div className="text-center mb-12">
+            <h2 className="font-serif text-[2.5rem] md:text-[2.6rem] font-normal text-[#00241b] mb-2">
+              Our Live Catalog Profiles
+            </h2>
+            <p className="text-slate-500 text-[1.05rem]">
+              Deploy operational asset blueprints synchronizing with external cloud compilation nodes.
+            </p>
           </div>
 
           {loading ? (
-            <p className="empty-admin-records" style={{ textAlign: "center" }}>Syncing hardware profiles...</p>
+            <p className="text-center text-slate-400 font-medium">Syncing hardware profiles...</p>
           ) : products.length === 0 ? (
-            <p className="empty-admin-records" style={{ textAlign: "center" }}>No active customized product cards compiled yet.</p>
+            <p className="text-center text-slate-400 font-medium">No active customized product cards compiled yet.</p>
           ) : (
-            <div className="replica-products-grid">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-12">
               {products.slice(0, 8).map((product) => (
                 <ProductCard
                   key={product._id}

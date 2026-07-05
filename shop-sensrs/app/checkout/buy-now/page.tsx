@@ -161,33 +161,42 @@ export default function BuyNowPage() {
   };
 
   if (loadingProfile) {
-    return <p className="empty-admin-records">Loading checkout...</p>;
+    return <p className="text-center text-slate-400 font-medium py-16">Loading checkout...</p>;
   }
 
   return (
-    <section className="buy-now-page">
-      <div className="buy-now-card">
-        <h1>Checkout</h1>
-        <p className="buy-now-login-text">
-          Logged in as: {email || user?.email || "User"}
+    <section className="bg-white min-h-screen px-4 py-8 md:px-12 flex justify-center font-sans text-black">
+      <div className="w-full max-w-[900px] border border-slate-400 rounded-[28px] p-6 md:p-10 bg-white">
+        
+        {/* CHECKOUT HEADER AREA */}
+        <h1 className="text-4xl font-bold mb-1 tracking-tight">Checkout</h1>
+        <p className="text-sm text-slate-700 mb-8 font-medium">
+          Logged in as: <span className="text-slate-900">{email || user?.email || "User"}</span>
         </p>
 
         {cartItems.length === 0 ? (
-          <p className="empty-admin-records">Your cart is empty.</p>
+          <p className="text-center text-slate-400 font-medium py-8">Your cart is empty.</p>
         ) : (
           <>
-            <div className="buy-now-summary">
-              <h2>Order Summary</h2>
-              <div className="checkout-items">
+            {/* ================= ORDER SUMMARY COMPONENT CONTAINER ================= */}
+            <div className="mb-8">
+              <h2 className="text-xl font-bold text-slate-900 mb-4 tracking-tight">Order Summary</h2>
+              
+              <div className="border border-slate-300 rounded-2xl bg-[#f2f2f2]/60 p-5 md:p-6 flex flex-col gap-6">
                 {cartItems.map((item, index) => (
-                  <div key={`${item.id}-${index}`} className="checkout-item">
-                    <div>
-                      <strong>{item.title}</strong>
-                      <p>Qty: {item.quantity}</p>
+                  <div 
+                    key={`${item.id}-${index}`} 
+                    className={`flex justify-between items-start text-sm ${
+                      index !== 0 ? "border-t border-slate-300 pt-5" : ""
+                    }`}
+                  >
+                    <div className="flex flex-col gap-0.5">
+                      <strong className="text-base font-bold text-slate-900">{item.title}</strong>
+                      <p className="text-sm text-slate-600 font-medium">Qty: {item.quantity}</p>
 
                       {item.selectedCustomizations &&
                         Object.keys(item.selectedCustomizations).length > 0 && (
-                          <ul className="checkout-customizations">
+                          <ul className="mt-2 flex flex-col gap-1 text-xs font-semibold text-slate-600 list-disc pl-4 uppercase tracking-wide">
                             {Object.entries(item.selectedCustomizations).map(
                               ([key, value]) => (
                                 <li key={key}>
@@ -199,36 +208,40 @@ export default function BuyNowPage() {
                         )}
                     </div>
 
-                    <span>
+                    <span className="text-base font-semibold text-slate-900 shrink-0">
                       ₹{(item.price * item.quantity).toLocaleString("en-IN")}
                     </span>
                   </div>
                 ))}
               </div>
 
-              <h3 className="buy-now-total">
+              {/* ESTIMATED TOTAL LABEL METRIC */}
+              <h3 className="text-2xl font-bold text-[#e11d48] mt-5 tracking-tight">
                 Total: ₹{totalPrice.toLocaleString("en-IN")}
               </h3>
             </div>
 
+            {/* ================= ADDRESS PICKER SLIDER BLOCK ================= */}
             {user?.addresses && user.addresses.length > 0 && (
-              <div className="saved-address-picker">
-                <h2>Choose Saved Address</h2>
-                <div className="saved-address-list">
+              <div className="mb-8">
+                <h2 className="text-xl font-bold text-slate-900 mb-4 tracking-tight">Choose Saved Address</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {user.addresses.map((address) => (
                     <button
                       key={address._id}
                       type="button"
-                      className={`saved-address-item ${
-                        selectedAddressId === address._id ? "active" : ""
-                      }`}
                       onClick={() => handleAddressSelect(address._id)}
+                      className={`flex flex-col text-left p-4 rounded-xl border transition-all duration-150 bg-white ${
+                        selectedAddressId === address._id 
+                          ? "border-[#e11d48] ring-1 ring-[#e11d48]" 
+                          : "border-slate-300 hover:border-slate-400"
+                      }`}
                     >
-                      <strong>{address.label || "Address"}</strong>
-                      <p>{address.fullName}</p>
-                      <p>{address.phone}</p>
-                      <p>{address.addressLine}</p>
-                      <p>
+                      <strong className="text-sm font-bold text-slate-900 mb-1">{address.label || "Address"}</strong>
+                      <p className="text-xs text-slate-600 font-medium">{address.fullName}</p>
+                      <p className="text-xs text-slate-600 font-medium">{address.phone}</p>
+                      <p className="text-xs text-slate-500 mt-1">{address.addressLine}</p>
+                      <p className="text-xs text-slate-500">
                         {address.city}, {address.state} - {address.pincode}
                       </p>
                     </button>
@@ -237,82 +250,92 @@ export default function BuyNowPage() {
               </div>
             )}
 
-            <div className="buy-now-form">
-              <div className="form-group">
-                <label>Full Name</label>
+            {/* ================= DELIVERY METADATA FORM INTERFACE ================= */}
+            <div className="flex flex-col gap-5">
+              
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-bold text-slate-900">Full Name</label>
                 <input
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="Enter your full name"
+                  className="w-full border border-slate-500 rounded-xl px-4 py-2.5 text-sm outline-none transition-colors duration-150 focus:border-slate-700 bg-white placeholder:text-slate-400 font-medium"
                 />
               </div>
 
-              <div className="form-group">
-                <label>Email Address</label>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-bold text-slate-900">Email Address</label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
+                  className="w-full border border-slate-500 rounded-xl px-4 py-2.5 text-sm outline-none transition-colors duration-150 focus:border-slate-700 bg-white placeholder:text-slate-400 font-medium"
                 />
               </div>
 
-              <div className="form-group">
-                <label>Phone Number</label>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-bold text-slate-900">Phone Number</label>
                 <input
                   type="text"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="Enter phone number"
+                  className="w-full border border-slate-500 rounded-xl px-4 py-2.5 text-sm outline-none transition-colors duration-150 focus:border-slate-700 bg-white placeholder:text-slate-400 font-medium"
                 />
               </div>
 
-              <div className="form-group full-width">
-                <label>Address Line</label>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-bold text-slate-900">Address Line</label>
                 <textarea
-                  rows={4}
+                  rows={3}
                   value={addressLine}
                   onChange={(e) => setAddressLine(e.target.value)}
                   placeholder="House no, street, area, landmark"
+                  className="w-full border border-slate-500 rounded-xl px-4 py-2.5 text-sm outline-none transition-colors duration-150 focus:border-slate-700 bg-white placeholder:text-slate-400 font-medium resize-y"
                 />
               </div>
 
-              <div className="form-group">
-                <label>City</label>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-bold text-slate-900">City</label>
                 <input
                   type="text"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
                   placeholder="Enter city"
+                  className="w-full border border-slate-500 rounded-xl px-4 py-2.5 text-sm outline-none transition-colors duration-150 focus:border-slate-700 bg-white placeholder:text-slate-400 font-medium"
                 />
               </div>
 
-              <div className="form-group">
-                <label>State</label>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-bold text-slate-900">State</label>
                 <input
                   type="text"
                   value={stateName}
                   onChange={(e) => setStateName(e.target.value)}
                   placeholder="Enter state"
+                  className="w-full border border-slate-500 rounded-xl px-4 py-2.5 text-sm outline-none transition-colors duration-150 focus:border-slate-700 bg-white placeholder:text-slate-400 font-medium"
                 />
               </div>
 
-              <div className="form-group">
-                <label>Pincode</label>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-bold text-slate-900">Pincode</label>
                 <input
                   type="text"
                   value={pincode}
                   onChange={(e) => setPincode(e.target.value)}
                   placeholder="Enter pincode"
+                  className="w-full border border-slate-500 rounded-xl px-4 py-2.5 text-sm outline-none transition-colors duration-150 focus:border-slate-700 bg-white placeholder:text-slate-400 font-medium"
                 />
               </div>
 
+              {/* ACTION: PLACE ORDER TRIGGER */}
               <button
                 type="button"
-                className="primary-btn buy-now-btn"
                 onClick={handleOrder}
                 disabled={loading}
+                className="w-full rounded-xl bg-[#e11d48] hover:bg-[#c2143a] text-white py-3.5 text-center text-sm font-semibold tracking-wide transition-colors duration-150 disabled:bg-slate-300 mt-4 active:scale-[0.99]"
               >
                 {loading ? "Placing Order..." : "Place Order"}
               </button>

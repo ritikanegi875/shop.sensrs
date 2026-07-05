@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { FiSearch } from "react-icons/fi";
-import { Heart, ShoppingCart, MoreVertical } from "lucide-react"; // Imported MoreVertical for 3-dot menu
+import { Heart, ShoppingCart, MoreVertical } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 
@@ -20,7 +20,7 @@ export default function Navbar() {
   const [search, setSearch] = useState("");
   const [user, setUser] = useState<AuthUser>(null);
   const [loading, setLoading] = useState(true);
-  const [isMenuOpen, setIsMenuOpen] = useState(false); // Mobile menu visibility control state
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const router = useRouter();
   const pathname = usePathname();
@@ -57,7 +57,7 @@ export default function Navbar() {
 
   useEffect(() => {
     fetchCurrentUser();
-    setIsMenuOpen(false); // Cleanly drop drop-down configurations down on redirect navigation changes
+    setIsMenuOpen(false);
   }, [pathname]);
 
   const handleLogout = async () => {
@@ -77,203 +77,18 @@ export default function Navbar() {
   };
 
   return (
-    <header className="navbar">
-      {/* SCOPED MODERN NAVBAR STYLING BLOCK WITH RESPONSIVE MENUS */}
-      <style dangerouslySetInnerHTML={{__html: `
-        .navbar {
-          height: 70px;
-          background-color: #ffffff;
-          border-bottom: 1px solid #e2e8f0;
-          display: flex;
-          align-items: center;
-          padding: 0 32px;
-          font-family: system-ui, -apple-system, sans-serif;
-          position: sticky;
-          top: 0;
-          z-index: 1000;
-        }
-        .navbar-container {
-          display: flex;
-          width: 100%;
-          align-items: center;
-          justify-content: space-between;
-          max-width: 1400px;
-          margin: 0 auto;
-          position: relative;
-        }
-        .logo a {
-          font-size: 22px;
-          font-weight: 700;
-          color: #000000;
-          text-decoration: none;
-          letter-spacing: -0.5px;
-        }
-        .search-box {
-          position: relative;
-          width: 400px;
-        }
-        .search-wrapper {
-          display: flex;
-          align-items: center;
-          position: relative;
-        }
-        .search-wrapper input {
-          width: 100%;
-          padding: 8px 16px 8px 38px;
-          border-radius: 8px;
-          border: 1px solid #e2e8f0;
-          font-size: 14px;
-          outline: none;
-          background-color: #f8fafc;
-          transition: border-color 0.15s;
-        }
-        .search-wrapper input:focus {
-          border-color: #14321a;
-          background-color: #ffffff;
-        }
-        .search-icon-inside {
-          position: absolute;
-          left: 12px;
-          color: #94a3b8;
-          pointer-events: none;
-        }
-        .nav-links {
-          display: flex;
-          align-items: center;
-          gap: 24px;
-        }
-        .nav-link-item {
-          font-size: 14px;
-          font-weight: 500;
-          color: #334155;
-          text-decoration: none;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          transition: color 0.15s;
-          position: relative;
-        }
-        .nav-link-item:hover {
-          color: #14321a;
-        }
-        .nav-badge {
-          background-color: #e11d48;
-          color: #ffffff;
-          font-size: 10px;
-          font-weight: 700;
-          padding: 2px 6px;
-          border-radius: 10px;
-          margin-left: 2px;
-        }
-        .navbar-logout-btn, .navbar-login-btn {
-          background-color: #14321a;
-          color: #ffffff;
-          border: none;
-          padding: 8px 20px;
-          border-radius: 6px;
-          cursor: pointer;
-          font-size: 14px;
-          font-weight: 500;
-          text-decoration: none;
-          transition: background-color 0.15s;
-          display: inline-block;
-          text-align: center;
-          white-space: nowrap;
-        }
-        .navbar-logout-btn:hover, .navbar-login-btn:hover {
-          background-color: #0f2513;
-        }
-        .navbar-loading-text {
-          font-size: 14px;
-          color: #94a3b8;
-          font-weight: 500;
-        }
+    <header className="sticky top-0 z-50 h-[70px] border-b border-slate-200 bg-white px-4 md:px-8 flex items-center font-sans">
+      <div className="relative mx-auto flex w-full max-w-[1400px] items-center justify-between">
         
-        /* 3-DOT MENU TOGGLE BUTTON */
-        .menu-toggle-btn {
-          display: none;
-          background: transparent;
-          border: none;
-          color: #334155;
-          cursor: pointer;
-          padding: 8px;
-          align-items: center;
-          justify-content: center;
-          transition: color 0.15s;
-        }
-        .menu-toggle-btn:hover {
-          color: #14321a;
-        }
-
-        /* RESPONSIVE LAYOUT UPDATES */
-        @media (max-width: 900px) {
-          .navbar {
-            padding: 0 16px;
-          }
-          .search-box {
-            width: 45%; /* Shrink search layout box dynamically to leave room for mobile buttons */
-          }
-          .menu-toggle-btn {
-            display: flex; /* Show 3-dots button */
-          }
-          
-          /* Turn links container into a clean card drop-down dashboard */
-          .nav-links {
-            display: none;
-            position: absolute;
-            top: 50px; /* Positioned right under the main elements bar line wrapper */
-            right: 0;
-            background-color: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            padding: 20px;
-            flex-direction: column;
-            align-items: stretch;
-            gap: 16px;
-            width: 240px;
-            z-index: 1001;
-          }
-          
-          .nav-links.open {
-            display: flex; /* Display menu when active */
-          }
-          
-          .nav-link-item {
-            font-size: 15px;
-            padding: 8px 4px;
-            width: 100%;
-          }
-          
-          .navbar-logout-btn, .navbar-login-btn {
-            width: 100%;
-            padding: 10px;
-          }
-        }
-        
-        @media (max-width: 600px) {
-          .navbar-container {
-            gap: 8px;
-          }
-          .logo a {
-            font-size: 18px;
-          }
-          .search-box {
-            width: 50%;
-          }
-        }
-      `}} />
-
-      <div className="navbar-container">
         {/* LOGO */}
-        <div className="logo">
+        <div className="font-serif text-xl font-bold tracking-tight text-black sm:text-2xl">
           <Link href="/">Shop.SEnSRS</Link>
         </div>
 
-        {/* SEARCH WORKSTATION INTEGRATION */}
-        <div className="search-box">
-          <div className="search-wrapper">
-            <FiSearch size={18} className="search-icon-inside" />
+        {/* SEARCH BOX */}
+        <div className="relative w-[50%] sm:w-[45%] md:w-[400px]">
+          <div className="relative flex items-center">
+            <FiSearch size={18} className="pointer-events-none absolute left-3 text-slate-400" />
             <input
               type="text"
               placeholder="Search electronics..."
@@ -284,49 +99,83 @@ export default function Navbar() {
                   handleSearch();
                 }
               }}
+              className="w-full rounded-lg border border-slate-200 bg-[#f8fafc] py-2 pl-[38px] pr-4 text-sm outline-none transition-colors duration-150 focus:border-[#14321a] focus:bg-white"
             />
           </div>
         </div>
 
-        {/* THREE-DOT INTERACTIVE MENU BUTTON FOR RESPONSIVE VIEWPORTS */}
-        <button 
-          type="button" 
-          className="menu-toggle-btn"
+        {/* THREE-DOT MOBILE MENU TOGGLE */}
+        <button
+          type="button"
+          className="flex p-2 text-slate-700 hover:text-[#14321a] md:hidden"
           onClick={() => setIsMenuOpen(!isMenuOpen)}
           aria-label="Toggle navigation menu"
         >
           <MoreVertical size={24} />
         </button>
 
-        {/* MODERN NAVIGATION OPTIONS CONTAINER */}
-        <nav className={`nav-links ${isMenuOpen ? "open" : ""}`}>
-          <Link href="/products" className="nav-link-item">Products</Link>
+        {/* NAVIGATION LINKS CONTAINER */}
+        <nav
+          className={`
+            absolute right-0 top-[50px] z-[1001] w-[240px] flex-col gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-lg md:shadow-none
+            md:static md:flex md:w-auto md:flex-row md:items-center md:gap-6 md:border-none md:p-0 
+            ${isMenuOpen ? "flex" : "hidden md:flex"}
+          `}
+        >
+          <Link href="/products" className="flex items-center gap-1.5 text-sm font-medium text-slate-700 transition-colors duration-150 hover:text-[#14321a]">
+            Products
+          </Link>
 
           {user?.role === "admin" && (
-            <Link href="/admin" className="nav-link-item" style={{ color: "#e11d48", fontWeight: "600" }}>Admin</Link>
+            <Link href="/admin" className="flex items-center gap-1.5 text-sm font-semibold text-rose-600 transition-colors duration-150">
+              Admin
+            </Link>
           )}
-          {user && <Link href="/account" className="nav-link-item">Account</Link>}
 
-          <Link href="/wishlist" className="nav-link-item">
-            <Heart size={16} /> Wishlist
+          {user && (
+            <Link href="/account" className="flex items-center gap-1.5 text-sm font-medium text-slate-700 transition-colors duration-150 hover:text-[#14321a]">
+              Account
+            </Link>
+          )}
+
+          {/* WISHLIST */}
+          <Link href="/wishlist" className="flex items-center gap-1.5 text-sm font-medium text-slate-700 transition-colors duration-150 hover:text-[#14321a]">
+            <Heart size={16} /> 
+            <span>Wishlist</span>
             {wishlistCount > 0 && (
-              <span className="nav-badge" style={{ backgroundColor: "#14321a" }}>{wishlistCount}</span>
+              <span className="ml-0.5 rounded-full bg-[#14321a] px-2 py-0.5 text-[10px] font-bold text-white">
+                {wishlistCount}
+              </span>
             )}
           </Link>
 
-          <Link href="/cart" className="nav-link-item">
-            <ShoppingCart size={16} /> Cart
-            {cartCount > 0 && <span className="nav-badge">{cartCount}</span>}
+          {/* CART */}
+          <Link href="/cart" className="flex items-center gap-1.5 text-sm font-medium text-slate-700 transition-colors duration-150 hover:text-[#14321a]">
+            <ShoppingCart size={16} /> 
+            <span>Cart</span>
+            {cartCount > 0 && (
+              <span className="ml-0.5 rounded-full bg-rose-600 px-2 py-0.5 text-[10px] font-bold text-white">
+                {cartCount}
+              </span>
+            )}
           </Link>
 
+          {/* AUTH STATUS ACTION BUTTONS */}
           {loading ? (
-            <span className="navbar-loading-text">Loading...</span>
+            <span className="text-sm font-medium text-slate-400">Loading...</span>
           ) : user ? (
-            <button type="button" className="navbar-logout-btn" onClick={handleLogout}>
+            <button
+              type="button"
+              className="inline-block rounded-md bg-[#14321a] px-5 py-2 text-center whitespace-nowrap text-sm font-medium text-white transition-colors duration-150 hover:bg-[#0f2513] w-full md:w-auto"
+              onClick={handleLogout}
+            >
               Logout
             </button>
           ) : (
-            <Link href="/auth/login" className="navbar-login-btn">
+            <Link
+              href="/auth/login"
+              className="inline-block rounded-md bg-[#14321a] px-5 py-2 text-center whitespace-nowrap text-sm font-medium text-white transition-colors duration-150 hover:bg-[#0f2513] w-full md:w-auto"
+            >
               Login
             </Link>
           )}

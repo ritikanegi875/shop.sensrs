@@ -3901,3 +3901,267 @@ img {
 .btn-appointment-redirect:hover {
   background: #f8fafb;
 }
+
+/* ==========================================================================
+   ADDITIONAL RESPONSIVE OVERRIDES FOR NEW COMPONENTS
+   ========================================================================== */
+
+/* --- Large Tablets & Small Laptops (max-width: 1024px) --- */
+@media (max-width: 1024px) {
+  .configurator-layout {
+    grid-template-columns: 300px 1fr; /* Narrow down the sidebar slightly */
+    gap: 1.5rem;
+    padding: 1.5rem;
+  }
+
+  .hardware-cards-grid {
+    grid-template-columns: repeat(2, 1fr); /* 3 columns become 2 */
+  }
+
+  .tab-content-viewport {
+    padding: 2rem; /* Reduce large padding */
+  }
+}
+
+/* --- Medium Tablets (max-width: 992px) --- */
+@media (max-width: 992px) {
+  .configurator-layout {
+    grid-template-columns: 1fr; /* Sidebar drops above the content */
+  }
+
+  .sidebar-panel {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* Sidebar items sit side-by-side on tablet */
+    gap: 1.5rem;
+  }
+
+  /* Prevent the button from breaking out */
+  .btn-save-config {
+    margin-top: 0.5rem;
+  }
+}
+
+/* --- Small Tablets & Portrait Viewports (max-width: 768px) --- */
+@media (max-width: 768px) {
+  .sidebar-panel {
+    grid-template-columns: 1fr; /* Stack sidebar cards back to full width */
+  }
+
+  .hardware-cards-grid {
+    grid-template-columns: 1fr; /* Hardware components go full-width */
+  }
+
+  .transport-metadata-banner {
+    flex-direction: column; /* Icon text and duration go vertical */
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .transport-location-block {
+    text-align: left; /* Re-align location tags */
+  }
+
+  .review-action-footer-row {
+    flex-direction: column; /* Sticky buttons stack vertically */
+    gap: 12px;
+  }
+
+  .customization-option-row {
+    grid-template-columns: 1fr !important; /* Forces custom configurator variables to stretch */
+    gap: 10px;
+  }
+}
+
+/* --- Mobile Smartphones (max-width: 480px) --- */
+@media (max-width: 480px) {
+  .configurator-container {
+    padding: 1rem;
+  }
+
+  .tab-content-viewport {
+    padding: 1.5rem 1rem;
+  }
+
+  .step-title {
+    font-size: 1.6rem;
+  }
+
+  .option-selection-card {
+    padding: 1rem 1rem 4rem 1rem; /* Adjust padding to make room for absolute elements */
+  }
+
+  .option-specs-grid {
+    flex-direction: column; /* Spec metrics go column layout */
+    gap: 12px;
+  }
+
+  .custom-radio-wrapper {
+    position: relative;
+    right: auto;
+    top: auto;
+    transform: none;
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 12px;
+  }
+  
+  .grand-total {
+    font-size: 1.8rem;
+  }
+}
+
+/* ==========================================================================
+   RESPONSIVE NAV MENU (THREE-DOT HAMBURGER OVERRIDES)
+   ========================================================================== */
+
+/* Hide the 3-dot button on desktop screens by default */
+.menu-toggle-btn {
+  display: none;
+  background: transparent;
+  border: none;
+  font-size: 28px;
+  color: #000000;
+  cursor: pointer;
+  padding: 4px 12px;
+  user-select: none;
+  z-index: 1001;
+}
+
+/* When viewed on screens 992px or narrower (Phones and Tablets) */
+@media (max-width: 992px) {
+  /* Show the 3-dot toggle button */
+  .menu-toggle-btn {
+    display: block;
+  }
+
+  /* Transform the nav-links into a clean mobile dropdown menu drawer */
+  .nav-links {
+    display: flex;
+    display: none; /* Hide it completely by default */
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    background-color: #ffffff;
+    border: 1px solid #e4e8eb;
+    border-radius: 12px;
+    padding: 16px;
+    position: absolute;
+    top: 100%; /* Sits exactly below the navbar container line */
+    left: 0;
+    right: 0;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+    gap: 14px;
+    z-index: 1000;
+  }
+
+  /* When the 3-dot button is clicked, JavaScript applies this class to display it */
+  .nav-links.active {
+    display: flex;
+  }
+
+  /* Make links and buttons cleanly align inside the mobile dropdown card */
+  .nav-links a, 
+  .nav-links .login-btn {
+    width: 100%;
+    padding: 12px 16px;
+    text-align: left;
+    border-radius: 8px;
+  }
+
+  .nav-links a:hover {
+    background-color: #f8fafb;
+    color: #23492f;
+  }
+}
+
+/* RESPONSIVE LAYOUT UPDATES */
+        @media (max-width: 900px) {
+          .navbar {
+            padding: 0 16px;
+            height: 70px; /* Forces uniform navbar height across mobile breakpoints */
+          }
+          
+          .navbar-container {
+            display: grid;
+            grid-template-columns: auto 1fr auto; /* Creates distinct sections: [Logo] [Search Box] [3-Dots Button] */
+            align-items: center;
+            width: 100%;
+            gap: 16px;
+            position: relative;
+          }
+
+          .logo {
+            display: block !important;
+          }
+          
+          .logo a {
+            font-size: 18px; /* Slightly scaled down text to fit mobile devices comfortably */
+            white-space: nowrap;
+          }
+
+          .search-box {
+            width: 100%;
+            max-width: 100%; /* Allows the search wrapper box to fluidly fill its grid track area */
+            margin: 0;
+          }
+
+          /* PIN THE 3-DOT BUTTON RIGHT TO THE LAST TRACK ITEM */
+          .menu-toggle-btn {
+            display: flex;
+            background: transparent;
+            border: none;
+            color: #334155;
+            cursor: pointer;
+            padding: 8px 0 8px 8px; /* Padding optimization to sit close to the right screen edge */
+          }
+          
+          /* Dropdown clean alignment card dashboard drawer layout */
+          .nav-links {
+            display: none;
+            position: absolute;
+            top: 55px; /* Safely drops it directly below the container track items line */
+            right: 0;
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 16px;
+            width: 240px;
+            z-index: 1001;
+          }
+          
+          .nav-links.open {
+            display: flex;
+          }
+          
+          .nav-link-item {
+            font-size: 15px;
+            padding: 8px 4px;
+            width: 100%;
+          }
+          
+          .navbar-logout-btn, .navbar-login-btn {
+            width: 100%;
+            padding: 10px;
+          }
+        }
+
+        /* SMARTPHONES AND SMALLER PORTRAIT SCREENS */
+        @media (max-width: 550px) {
+          .navbar-container {
+            grid-template-columns: auto auto; /* Shrink to two sections: [Search Box Area] [3-Dots Menu] */
+            gap: 12px;
+          }
+
+          /* Hide text logo strictly on narrow mobile panels to prevent compression layout drops */
+          .logo {
+            display: none !important; 
+          }
+
+          .search-box {
+            grid-column: 1; /* Shifts search layout block left to cover hidden logo void */
+          }
+        }

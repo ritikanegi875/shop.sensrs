@@ -107,11 +107,11 @@ export default function AdminPage() {
     { label: "Products", href: "/admin/products", icon: ShoppingBag },
     { label: "Orders", href: "/admin/orders", icon: ShoppingCart },
     { label: "Appointments", href: "/admin/appointments", icon: Calendar },
-    { label: "Customers", href: "/admin/customers", icon: Users },
+  //  { label: "Customers", href: "/admin/customers", icon: Users },
     { label: "Banners", href: "/admin/banners", icon: ImageIcon },
     { label: "Reports", href: "/admin/reports", icon: BarChart3 },
     { label: "Export Records", href: "/api/export", icon: Download, isExternal: true },
-    { label: "Settings", href: "/admin/settings", icon: Settings },
+    // { label: "Settings", href: "/admin/settings", icon: Settings },
   ];
 
   return (

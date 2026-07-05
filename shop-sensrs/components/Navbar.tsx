@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { FiSearch } from "react-icons/fi";
-import { Heart, ShoppingCart } from "lucide-react"; // Matching modern lucide icons
+import { Heart, ShoppingCart, MoreVertical } from "lucide-react"; // Imported MoreVertical for 3-dot menu
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 
@@ -20,13 +20,13 @@ export default function Navbar() {
   const [search, setSearch] = useState("");
   const [user, setUser] = useState<AuthUser>(null);
   const [loading, setLoading] = useState(true);
+  const [isMenuOpen, setIsMenuOpen] = useState(false); // Mobile menu visibility control state
 
   const router = useRouter();
   const pathname = usePathname();
 
   const handleSearch = () => {
     const trimmedSearch = search.trim();
-
     if (trimmedSearch) {
       router.push(`/products?search=${encodeURIComponent(trimmedSearch)}`);
     } else {
@@ -37,14 +37,11 @@ export default function Navbar() {
   const fetchCurrentUser = async () => {
     try {
       setLoading(true);
-
       const res = await fetch("/api/auth/me", {
         method: "GET",
         cache: "no-store",
       });
-
       const data = await res.json();
-
       if (data.success) {
         setUser(data.user);
       } else {
@@ -60,6 +57,7 @@ export default function Navbar() {
 
   useEffect(() => {
     fetchCurrentUser();
+    setIsMenuOpen(false); // Cleanly drop drop-down configurations down on redirect navigation changes
   }, [pathname]);
 
   const handleLogout = async () => {
@@ -67,9 +65,7 @@ export default function Navbar() {
       const res = await fetch("/api/auth/logout", {
         method: "POST",
       });
-
       const data = await res.json();
-
       if (data.success) {
         setUser(null);
         router.push("/auth/login");
@@ -82,7 +78,7 @@ export default function Navbar() {
 
   return (
     <header className="navbar">
-      {/* SCOPED MODERN NAVBAR STYLING BLOCK */}
+      {/* SCOPED MODERN NAVBAR STYLING BLOCK WITH RESPONSIVE MENUS */}
       <style dangerouslySetInnerHTML={{__html: `
         .navbar {
           height: 70px;
@@ -103,6 +99,7 @@ export default function Navbar() {
           justify-content: space-between;
           max-width: 1400px;
           margin: 0 auto;
+          position: relative;
         }
         .logo a {
           font-size: 22px;
@@ -181,17 +178,89 @@ export default function Navbar() {
           transition: background-color 0.15s;
           display: inline-block;
           text-align: center;
+          white-space: nowrap;
         }
-        .navbar-logout-btn:hover {
-          background-color: #0f2513;
-        }
-        .navbar-login-btn:hover {
+        .navbar-logout-btn:hover, .navbar-login-btn:hover {
           background-color: #0f2513;
         }
         .navbar-loading-text {
           font-size: 14px;
           color: #94a3b8;
           font-weight: 500;
+        }
+        
+        /* 3-DOT MENU TOGGLE BUTTON */
+        .menu-toggle-btn {
+          display: none;
+          background: transparent;
+          border: none;
+          color: #334155;
+          cursor: pointer;
+          padding: 8px;
+          align-items: center;
+          justify-content: center;
+          transition: color 0.15s;
+        }
+        .menu-toggle-btn:hover {
+          color: #14321a;
+        }
+
+        /* RESPONSIVE LAYOUT UPDATES */
+        @media (max-width: 900px) {
+          .navbar {
+            padding: 0 16px;
+          }
+          .search-box {
+            width: 45%; /* Shrink search layout box dynamically to leave room for mobile buttons */
+          }
+          .menu-toggle-btn {
+            display: flex; /* Show 3-dots button */
+          }
+          
+          /* Turn links container into a clean card drop-down dashboard */
+          .nav-links {
+            display: none;
+            position: absolute;
+            top: 50px; /* Positioned right under the main elements bar line wrapper */
+            right: 0;
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 16px;
+            width: 240px;
+            z-index: 1001;
+          }
+          
+          .nav-links.open {
+            display: flex; /* Display menu when active */
+          }
+          
+          .nav-link-item {
+            font-size: 15px;
+            padding: 8px 4px;
+            width: 100%;
+          }
+          
+          .navbar-logout-btn, .navbar-login-btn {
+            width: 100%;
+            padding: 10px;
+          }
+        }
+        
+        @media (max-width: 600px) {
+          .navbar-container {
+            gap: 8px;
+          }
+          .logo a {
+            font-size: 18px;
+          }
+          .search-box {
+            width: 50%;
+          }
         }
       `}} />
 
@@ -219,8 +288,18 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* MODERN NAVIGATION OPTIONS */}
-        <nav className="nav-links">
+        {/* THREE-DOT INTERACTIVE MENU BUTTON FOR RESPONSIVE VIEWPORTS */}
+        <button 
+          type="button" 
+          className="menu-toggle-btn"
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          aria-label="Toggle navigation menu"
+        >
+          <MoreVertical size={24} />
+        </button>
+
+        {/* MODERN NAVIGATION OPTIONS CONTAINER */}
+        <nav className={`nav-links ${isMenuOpen ? "open" : ""}`}>
           <Link href="/products" className="nav-link-item">Products</Link>
 
           {user?.role === "admin" && (

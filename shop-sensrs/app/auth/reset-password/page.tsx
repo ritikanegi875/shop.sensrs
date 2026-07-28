@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function ResetPasswordPage() {
+function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -52,9 +52,11 @@ export default function ResetPasswordPage() {
       }
 
       setMessage("Password reset successfully. Redirecting to login...");
+
       setTimeout(() => {
         router.push("/auth/login");
       }, 1200);
+
     } catch (error) {
       setMessage("Something went wrong");
       setLoading(false);
@@ -100,5 +102,13 @@ export default function ResetPasswordPage() {
         </p>
       </div>
     </section>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ResetPasswordForm />
+    </Suspense>
   );
 }

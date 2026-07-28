@@ -2,12 +2,16 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import FeatureBar from "@/components/FeatureBar";
 import ProductCard from "@/components/ProductCard";
+import { 
+  Play, ChevronLeft, ChevronRight, ArrowUpRight, 
+  MapPin, Send, Mail, Phone, User, MessageSquare, X 
+} from "lucide-react";
 
 type Banner = {
   _id: string;
   imageUrl: string;
+  category?: string;
 };
 
 type Product = {
@@ -20,103 +24,217 @@ type Product = {
   hasCustomization?: boolean;
 };
 
+type VideoItem = {
+  _id?: string;
+  title: string;
+  tag: string;
+  desc: string;
+  duration?: string;
+  thumb?: string;
+  videoUrl: string;
+};
+
+const defaultVideos: VideoItem[] = [
+  {
+    title: "Autonomous Surveyor Pro",
+    tag: "PRODUCT DEMO",
+    desc: "See how our USV delivers precise survey data with advanced autonomy.",
+    duration: "02:35",
+    videoUrl: "https://www.youtube.com/watch?v=ScMzIvxBSi4",
+  },
+  {
+    title: "Survey in Action",
+    tag: "FEATURED VIDEO",
+    desc: "Real-time operation of USV-X1 Pro in complex water environments.",
+    duration: "03:42",
+    videoUrl: "https://www.youtube.com/watch?v=jNQXAC9IVRw",
+  },
+  {
+    title: "Live Deployment",
+    tag: "FIELD DEPLOYMENT",
+    desc: "Watch our product deployed in real-world conditions for mapping and monitoring.",
+    duration: "03:18",
+    videoUrl: "https://www.youtube.com/watch?v=LXb3EKWsInQ",
+  },
+];
+
+function getYouTubeId(url: string): string | null {
+  if (!url) return null;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return match && match[2].length === 11 ? match[2] : null;
+}
+
+function getYouTubeEmbedUrl(url: string): string | null {
+  const videoId = getYouTubeId(url);
+  return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1` : null;
+}
+
+function getYouTubeThumbnail(url: string): string {
+  const videoId = getYouTubeId(url);
+  if (videoId) {
+    return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+  }
+  return "https://images.unsplash.com/photo-1559136555-9303baea8ebd?q=80&w=800";
+}
+
 export default function HomePage() {
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   
-  const [banners, setBanners] = useState<Banner[]>([]);
+  const [heroBanners, setHeroBanners] = useState<Banner[]>([]);
+  const [bannerTwoImage, setBannerTwoImage] = useState<string>("https://images.unsplash.com/photo-1559136555-9303baea8ebd?q=80&w=1920");
   const [activeIndex, setActiveIndex] = useState(0);
 
-  useEffect(() => {
-    async function fetchHeroBanners() {
-      try {
-        const res = await fetch("/api/banners", { cache: "no-store" });
-        const data = await res.json();
-        
-        if (data.success && data.banners && data.banners.length > 0) {
-          setBanners(data.banners);
-        }
-      } catch (error) {
-        console.error("HERO BANNER FETCH SYNC ERROR:", error);
-      }
-    }
+  const [videoList, setVideoList] = useState<VideoItem[]>(defaultVideos);
+  const [videoIndex, setVideoIndex] = useState(0);
+  const [playingVideo, setPlayingVideo] = useState<VideoItem | null>(null);
+  const [isPaused, setIsPaused] = useState(false);
 
-    async function fetchProducts() {
+  useEffect(() => {
+    async function fetchData() {
       try {
-        const res = await fetch("/api/products", { cache: "no-store" });
-        const data = await res.json();
-        if (data.success) {
-          setProducts(data.products || []);
+        const bannerRes = await fetch("/api/banners", { cache: "no-store" });
+        const bannerData = await bannerRes.json();
+        if (bannerData.success && bannerData.banners && bannerData.banners.length > 0) {
+          const allBanners: Banner[] = bannerData.banners;
+          
+          const heroes = allBanners.filter((b) => !b.category || b.category === "hero");
+          const bannerTwoItem = allBanners.find((b) => b.category === "banner-two");
+
+          if (heroes.length > 0) {
+            setHeroBanners(heroes);
+          }
+          if (bannerTwoItem && bannerTwoItem.imageUrl) {
+            setBannerTwoImage(bannerTwoItem.imageUrl);
+          }
+        }
+
+        const prodRes = await fetch("/api/products", { cache: "no-store" });
+        const prodData = await prodRes.json();
+        if (prodData.success) {
+          setProducts(prodData.products || []);
+        }
+
+        const vidRes = await fetch("/api/videos", { cache: "no-store" });
+        const vidData = await vidRes.json();
+        if (vidData.success && Array.isArray(vidData.videos) && vidData.videos.length > 0) {
+          const dbVideos = vidData.videos.map((v: any, idx: number) => ({
+            _id: v._id,
+            title: v.title || defaultVideos[idx % defaultVideos.length].title,
+            tag: v.tag || defaultVideos[idx % defaultVideos.length].tag,
+            desc: v.desc || defaultVideos[idx % defaultVideos.length].desc,
+            duration: v.duration || "03:15",
+            thumb: getYouTubeThumbnail(v.videoUrl || v.url),
+            videoUrl: v.videoUrl || v.url || "",
+          })).filter((v: VideoItem) => Boolean(v.videoUrl));
+
+          if (dbVideos.length > 0) {
+            if (dbVideos.length < 3) {
+              setVideoList([...dbVideos, ...defaultVideos.slice(dbVideos.length)]);
+            } else {
+              setVideoList(dbVideos);
+            }
+          }
         }
       } catch (error) {
-        console.error("HOME PRODUCTS ERROR:", error);
+        console.error("DATA FETCH ERROR:", error);
       } finally {
         setLoading(false);
       }
     }
 
-    fetchHeroBanners();
-    fetchProducts();
+    fetchData();
   }, []);
 
   useEffect(() => {
-    if (banners.length <= 1) return;
-
+    if (heroBanners.length <= 1) return;
     const bannerTimer = setInterval(() => {
-      setActiveIndex((prevIndex) => (prevIndex + 1) % banners.length);
+      setActiveIndex((prevIndex) => (prevIndex + 1) % heroBanners.length);
     }, 3000);
-
     return () => clearInterval(bannerTimer);
-  }, [banners]);
+  }, [heroBanners]);
+
+  useEffect(() => {
+    if (isPaused || videoList.length === 0) return;
+
+    const autoSlideTimer = setInterval(() => {
+      setVideoIndex((prev) => (prev + 1) % videoList.length);
+    }, 4500);
+
+    return () => clearInterval(autoSlideTimer);
+  }, [isPaused, videoList]);
+
+  const handlePrevVideo = () => {
+    setVideoIndex((prev) => (prev - 1 + videoList.length) % videoList.length);
+  };
+
+  const handleNextVideo = () => {
+    setVideoIndex((prev) => (prev + 1) % videoList.length);
+  };
+
+  const visibleVideos = useMemo(() => {
+    const total = videoList.length;
+    if (total === 0) return [];
+
+    const list = [];
+    for (let i = 0; i < 3; i++) {
+      const targetIdx = (videoIndex + i) % total;
+      list.push({
+        ...videoList[targetIdx],
+        originalIndex: targetIdx,
+        isCenter: i === 1,
+      });
+    }
+    return list;
+  }, [videoIndex, videoList]);
 
   const handleScrollToContent = () => {
-    const targetSection = document.getElementById("main-catalog-content");
+    const targetSection = document.getElementById("video-showcase-section");
     if (targetSection) {
       targetSection.scrollIntoView({ behavior: "smooth" });
     }
   };
 
   const currentHeroBg = useMemo(() => {
-    if (banners.length > 0 && banners[activeIndex]) {
-      return banners[activeIndex].imageUrl;
+    if (heroBanners.length > 0 && heroBanners[activeIndex]) {
+      return heroBanners[activeIndex].imageUrl;
     }
-    return "";
-  }, [banners, activeIndex]);
+    return "https://images.unsplash.com/photo-1559136555-9303baea8ebd?q=80&w=1920";
+  }, [heroBanners, activeIndex]);
 
   return (
-    <main className="bg-white text-[#0c1c18] font-sans overflow-x-hidden">
-
-      {/* ================= SECTION 1: CINEMATIC HERO SECTION ================= */}
+    <main className="w-full bg-[#fafbf9] text-[#0c1c18] font-sans antialiased overflow-x-hidden selection:bg-[#00241b] selection:text-white">
+      
+      {/* ================= SECTION 1: HERO SECTION ================= */}
       <section 
-        className="relative w-full min-height-[100vh] min-h-screen flex items-center bg-[#01140f] bg-center bg-cover bg-no-repeat px-8 py-16 transition-[background-image] duration-750 ease-in-out"
+        className="relative w-full min-h-[90vh] lg:min-h-screen flex items-center px-6 sm:px-12 lg:px-20 py-16 bg-center bg-cover bg-no-repeat transition-all duration-750"
         style={{
-          backgroundImage: currentHeroBg 
-            ? `linear-gradient(to right, rgba(1, 20, 15, 0.95) 30%, rgba(1, 20, 15, 0.5) 100%), url('${currentHeroBg}')`
-            : `linear-gradient(to right, rgba(1, 20, 15, 0.95) 30%, rgba(1, 20, 15, 0.5) 100%)`
+          backgroundImage: `linear-gradient(to right, rgba(1, 20, 15, 0.92) 40%, rgba(1, 20, 15, 0.45) 100%), url('${currentHeroBg}')`
         }}
       >
-        <div className="relative max-w-[750px] z-10 pl-4 md:pl-12 text-white">
-          <span className="inline-block bg-white/10 text-[#dfc886] text-xs font-bold tracking-[0.15em] px-3 py-1.5 rounded border border-white/10 uppercase mb-6">
-            ⚓ INNOVATION UNDER SURFACE
+        <div className="relative z-10 w-full max-w-4xl mx-auto lg:mx-0 lg:pl-6 text-left">
+          <span className="inline-flex items-center gap-1.5 bg-white/10 text-[#dfc886] text-xs font-bold tracking-[0.15em] px-3.5 py-1.5 rounded border border-white/10 uppercase mb-6 backdrop-blur-md">
+            <span>⚓</span> INNOVATION UNDER SURFACE
           </span>
-          <h1 className="font-serif text-5xl md:text-6xl lg:text-[4rem] leading-[1.1] font-normal mb-6 text-white">
+          <h1 className="font-serif text-4xl sm:text-6xl lg:text-[4.2rem] text-white font-normal leading-[1.1] mb-6">
             Precision Marine Engineering
           </h1>
-          <p className="text-base md:text-lg text-slate-300 leading-relaxed mb-10 max-w-[600px]">
+          <p className="text-base sm:text-lg text-slate-300 max-w-xl leading-relaxed mb-10">
             Pioneering the future of autonomous marine exploration with industrial-grade unmanned surface vehicles and high-fidelity sensory arrays.
           </p>
-          <div className="flex flex-wrap gap-5">
+          <div className="flex flex-wrap gap-4">
             <button 
               type="button" 
-              className="bg-[#dfc886] hover:bg-[#d0b36b] text-[#01140f] border-none px-8 py-4 text-base font-semibold rounded-md cursor-pointer transition-colors duration-150 flex items-center gap-2" 
+              className="bg-[#dfc886] hover:bg-[#d0b36b] text-[#01140f] px-7 py-3.5 text-sm sm:text-base font-semibold rounded cursor-pointer transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-xl"
               onClick={() => router.push("/products")}
             >
               Explore Systems <span>➔</span>
             </button>
             <button 
               type="button" 
-              className="bg-white/10 hover:bg-white/15 text-white border border-white/20 px-8 py-4 text-base font-semibold rounded-md cursor-pointer transition-colors duration-150" 
+              className="bg-white/10 hover:bg-white/20 text-white border border-white/20 px-7 py-3.5 text-sm sm:text-base font-semibold rounded cursor-pointer transition-all duration-200 backdrop-blur-sm"
               onClick={handleScrollToContent}
             >
               Watch Tech Demo
@@ -124,191 +242,565 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Dynamic Carousel Navigation Dots */}
-        {banners.length > 1 && (
-          <div className="absolute bottom-20 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-            {banners.map((_, dotIndex) => (
+        {heroBanners.length > 1 && (
+          <div className="absolute bottom-20 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+            {heroBanners.map((_, dotIndex) => (
               <button
                 key={dotIndex}
                 type="button"
-                className={`w-2 h-2 rounded-full border-none p-0 cursor-pointer transition-all duration-200 ${
-                  activeIndex === dotIndex ? "bg-[#dfc886] scale-125" : "bg-white/40"
-                }`}
+                className={`w-2 h-2 rounded-full transition-all duration-300 ${activeIndex === dotIndex ? "bg-[#dfc886] w-6" : "bg-white/40"}`}
                 onClick={() => setActiveIndex(dotIndex)}
               />
             ))}
           </div>
         )}
 
-        {/* Mouse/Scroll Prompt Indicator */}
         <div 
-          className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-white text-[10px] font-bold tracking-widest uppercase cursor-pointer opacity-80 hover:opacity-100 hover:-translate-y-0.5 transition-all duration-200 z-10" 
+          className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-white/70 hover:text-white transition-all cursor-pointer text-[10px] font-bold tracking-widest uppercase z-20"
           onClick={handleScrollToContent}
         >
           <span>Scroll to Explore</span>
-          <div className="w-6 h-9 border-2 border-white rounded-xl relative">
-            <div className="w-1 h-2 bg-[#dfc886] rounded-sm absolute top-1.5 left-1/2 -translate-x-1/2 animate-[bounce_1.6s_infinite_ease-in-out]" />
+          <div className="w-5 h-8 border-2 border-white/80 rounded-full relative">
+            <div className="w-1 h-2 bg-[#dfc886] rounded-full absolute left-1/2 -translate-x-1/2 top-1.5 animate-bounce" />
           </div>
         </div>
       </section>
 
-      {/* ================= SCROLLING TARGET CONTENT WRAPPER ================= */}
-      <div id="main-catalog-content" className="relative z-10 bg-white">
-        
-        <FeatureBar />
-
-        {/* ================= SECTION 2: FLAGSHIP USV FEATURE CARD ================= */}
-        <section className="max-w-[1300px] mx-auto px-8 py-24 grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-16 items-center">
-          <div className="flex flex-col gap-6">
-            <span className="inline-block self-start bg-[#fdf3e7] text-[#c07c34] text-xs font-bold tracking-wider uppercase px-3 py-1.5 rounded">
-              FLAGSHIP TECHNOLOGY
+      {/* ================= SECTION 2: HORIZONTAL WIDESCREEN YOUTUBE VIDEO SLIDER ================= */}
+      <section 
+        id="video-showcase-section" 
+        className="w-full bg-[#fbfdf9] pt-16 pb-22 px-6 sm:px-8 lg:px-12 relative border-t border-slate-200/80"
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+      >
+        <div className="max-w-5xl mx-auto">
+          
+          <div className="text-center max-w-xl mx-auto mb-10">
+            <span className="text-[#c07c34] text-xs font-bold tracking-[0.2em] uppercase mb-1.5 block">
+              VIDEOS
             </span>
-            <h2 className="font-serif text-[2.5rem] md:text-[2.8rem] font-normal text-[#00241b] leading-tight m-0">
-              BathyCat USV System
+            <h2 className="font-serif text-3xl sm:text-4xl font-normal text-[#00241b] mb-2">
+              Watch our products in action
             </h2>
-            <p className="text-slate-600 text-[1.05rem] leading-relaxed m-0">
-              The BathyCat is our flagship Unmanned Surface Vehicle, engineered for high-precision hydrographic surveys in challenging littoral environments. Its modular catamaran hull provides unparalleled stability and payload flexibility.
+            <div className="w-12 h-[2px] bg-[#c07c34] mx-auto mb-3" />
+            <p className="text-slate-500 text-xs sm:text-sm leading-relaxed">
+              Explore product demos, field operations and real-world deployments.
             </p>
+          </div>
+
+          <div className="relative px-2 sm:px-6 pt-2 pb-4">
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-8 mt-4">
-              <div className="flex gap-4">
-                <span className="text-2xl pt-0.5">🌊</span>
-                <div className="flex flex-col gap-1">
-                  <h4 className="text-[1.05rem] font-semibold text-slate-900 m-0">Dual-Hull Stability</h4>
-                  <p className="text-sm text-slate-500 leading-normal m-0">Optimized geometry for minimal drag and maximum roll resistance.</p>
-                </div>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-6 items-stretch">
+              {visibleVideos.map((video, idx) => {
+                const isCenter = video.isCenter;
+                const thumbImg = getYouTubeThumbnail(video.videoUrl) || video.thumb;
 
-              <div className="flex gap-4">
-                <span className="text-2xl pt-0.5">🔋</span>
-                <div className="flex flex-col gap-1">
-                  <h4 className="text-[1.05rem] font-semibold text-slate-900 m-0">12h Endurance</h4>
-                  <p className="text-sm text-slate-500 leading-normal m-0">High-density lithium-ion arrays configured for extended mission profiles.</p>
-                </div>
-              </div>
+                return (
+                  <div 
+                    key={`${video.originalIndex}-${idx}`}
+                    onClick={() => setPlayingVideo(video)}
+                    className={`bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer group flex flex-col justify-between ${
+                      isCenter 
+                        ? "md:-translate-y-2.5 shadow-lg ring-1 ring-slate-200 z-20" 
+                        : "z-10"
+                    }`}
+                  >
+                    <div>
+                      <div className="relative aspect-[16/9] bg-slate-900 overflow-hidden">
+                        <img 
+                          src={thumbImg} 
+                          alt={video.title} 
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                        />
+                        
+                        <div className="absolute inset-0 bg-black/25 group-hover:bg-black/15 transition-colors flex items-center justify-center">
+                          {isCenter ? (
+                            <div className="w-11 h-11 rounded-full bg-white text-[#00241b] flex items-center justify-center pl-0.5 shadow-lg group-hover:scale-110 transition-transform">
+                              <Play size={18} fill="#00241b" className="text-[#00241b]" />
+                            </div>
+                          ) : (
+                            <div className="w-10 h-10 rounded-full border-2 border-white/80 bg-black/20 backdrop-blur-xs text-white flex items-center justify-center pl-0.5 shadow-md group-hover:scale-110 transition-transform">
+                              <Play size={15} fill="white" className="text-white" />
+                            </div>
+                          )}
+                        </div>
 
-              <div className="flex gap-4">
-                <span className="text-2xl pt-0.5">📡</span>
-                <div className="flex flex-col gap-1">
-                  <h4 className="text-[1.05rem] font-semibold text-slate-900 m-0">Long-Range Link</h4>
-                  <p className="text-sm text-slate-500 leading-normal m-0">Encrypted COFDM telemetry architecture for reliable control up to 5km.</p>
-                </div>
-              </div>
+                        <span className="absolute bottom-2.5 right-2.5 bg-black/80 text-white text-[9px] font-semibold px-1.5 py-0.5 rounded">
+                          {video.duration || "02:35"}
+                        </span>
+                      </div>
 
-              <div className="flex gap-4">
-                <span className="text-2xl pt-0.5">🏗️</span>
-                <div className="flex flex-col gap-1">
-                  <h4 className="text-[1.05rem] font-semibold text-slate-900 m-0">Modular Rails</h4>
-                  <p className="text-sm text-slate-500 leading-normal m-0">Universal system for ADCPs and high-end sensors.</p>
+                      <div className="p-5">
+                        <span className="inline-block bg-[#fdf3e7] text-[#c07c34] text-[9px] font-bold tracking-wider uppercase px-2 py-0.5 rounded mb-2">
+                          {video.tag || "PRODUCT DEMO"}
+                        </span>
+                        <h3 className="font-serif text-lg text-[#00241b] font-normal mb-1.5 leading-snug">
+                          {video.title}
+                        </h3>
+                        <p className="text-slate-500 text-xs leading-relaxed line-clamp-2">
+                          {video.desc}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="px-5 pb-5 pt-0 flex justify-end">
+                      <div className="w-7 h-7 rounded-lg border border-amber-200/80 bg-[#fdf3e7]/80 flex items-center justify-center text-[#c07c34] group-hover:bg-[#00241b] group-hover:text-white group-hover:border-[#00241b] transition-all">
+                        <ArrowUpRight size={14} />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <button 
+              type="button"
+              onClick={handlePrevVideo}
+              className="flex absolute -left-2 sm:-left-4 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white border border-slate-200 items-center justify-center text-slate-700 shadow-md hover:bg-[#00241b] hover:text-white transition-all cursor-pointer z-30"
+            >
+              <ChevronLeft size={18} />
+            </button>
+
+            <button 
+              type="button"
+              onClick={handleNextVideo}
+              className="flex absolute -right-2 sm:-right-4 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white border border-slate-200 items-center justify-center text-slate-700 shadow-md hover:bg-[#00241b] hover:text-white transition-all cursor-pointer z-30"
+            >
+              <ChevronRight size={18} />
+            </button>
+          </div>
+
+          <div className="flex justify-center items-center gap-2 mt-6">
+            {videoList.map((_, dotIdx) => (
+              <button
+                key={dotIdx}
+                type="button"
+                onClick={() => setVideoIndex(dotIdx)}
+                className={`transition-all rounded-full cursor-pointer ${
+                  videoIndex === dotIdx ? "w-4 h-2 bg-[#00241b]" : "w-2 h-2 bg-slate-300 hover:bg-slate-400"
+                }`}
+              />
+            ))}
+          </div>
+
+        </div>
+      </section>
+
+      {/* ================= YOUTUBE VIDEO PLAYER MODAL ================= */}
+      {playingVideo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="relative w-full max-w-4xl bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-slate-700">
+            <div className="flex items-center justify-between p-4 bg-slate-950 text-white border-b border-slate-800">
+              <span className="font-serif text-lg text-amber-400 font-medium">{playingVideo.title}</span>
+              <button 
+                type="button"
+                onClick={() => setPlayingVideo(null)}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white cursor-pointer transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            
+            <div className="relative aspect-video w-full bg-black">
+              {getYouTubeEmbedUrl(playingVideo.videoUrl) ? (
+                <iframe
+                  src={getYouTubeEmbedUrl(playingVideo.videoUrl)!}
+                  title={playingVideo.title}
+                  className="w-full h-full border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-white">
+                  Invalid Video Link
                 </div>
-              </div>
+              )}
             </div>
           </div>
+        </div>
+      )}
 
-          <div className="w-full">
-            <img 
-              src="https://images.unsplash.com/photo-1559136555-9303baea8ebd?q=80&w=1200" 
-              alt="BathyCat Flagship Catamaran Model" 
-              className="w-full h-auto rounded-2xl object-cover shadow-[0_20px_40px_-15px_rgba(0,36,27,0.15)]"
-            />
+      {/* ================= SECTION 3: LIVE STATISTICS DASHBOARD ================= */}
+      <section className="w-full bg-[#f4f6f1] py-20 border-y border-slate-200/60">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <h2 className="font-serif text-3xl sm:text-4xl text-[#00241b] font-normal mb-3">
+              Live Statistics Dashboard
+            </h2>
+            <div className="w-12 h-[2px] bg-[#c07c34] mx-auto mb-4" />
+            <p className="text-slate-500 text-sm sm:text-base">
+              Real-time insights that reflect our commitment to innovation, precision, and customer success.
+            </p>
           </div>
-        </section>
 
-        {/* ================= SECTION 3: INDUSTRY BENCHMARKS GRID MATRIX ================= */}
-        <section className="bg-[#f8fafb] border-t border-b border-slate-200 px-8 py-24">
-          <div className="max-w-[1300px] mx-auto">
-            <div className="text-center mb-16">
-              <h2 className="font-serif text-[2.5rem] md:text-[2.6rem] font-normal text-[#00241b] mb-2">
-                Industry Benchmarks
-              </h2>
-              <p className="text-slate-500 text-[1.05rem]">
-                Our most trusted systems for global marine operations, verified by leading hydrographic agencies.
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+            <div className="bg-white border border-slate-200/80 rounded-2xl p-6 text-center flex flex-col items-center justify-between shadow-sm">
+              <div className="w-12 h-12 rounded-full bg-emerald-50 text-[#00241b] flex items-center justify-center mb-4">
+                <span className="text-xl">📦</span>
+              </div>
+              <div className="font-serif text-3xl lg:text-4xl font-normal text-[#00241b] mb-1">
+                15<span className="text-[#c07c34]">+</span>
+              </div>
+              <div className="w-8 h-[2px] bg-[#c07c34] mb-3" />
+              <h4 className="font-semibold text-slate-800 text-sm mb-1">Products Deployed</h4>
+              <p className="text-slate-500 text-xs leading-relaxed">High-performance USV models in the field</p>
+            </div>
+
+            <div className="bg-white border border-slate-200/80 rounded-2xl p-6 text-center flex flex-col items-center justify-between shadow-sm">
+              <div className="w-12 h-12 rounded-full bg-emerald-50 text-[#00241b] flex items-center justify-center mb-4">
+                <span className="text-xl">👥</span>
+              </div>
+              <div className="font-serif text-3xl lg:text-4xl font-normal text-[#00241b] mb-1">
+                200<span className="text-[#c07c34]">+</span>
+              </div>
+              <div className="w-8 h-[2px] bg-[#c07c34] mb-3" />
+              <h4 className="font-semibold text-slate-800 text-sm mb-1">Happy Clients</h4>
+              <p className="text-slate-500 text-xs leading-relaxed">Organizations that trust our technology</p>
+            </div>
+
+            <div className="bg-white border border-slate-200/80 rounded-2xl p-6 text-center flex flex-col items-center justify-between shadow-sm">
+              <div className="w-12 h-12 rounded-full bg-emerald-50 text-[#00241b] flex items-center justify-center mb-4">
+                <span className="text-xl">🚢</span>
+              </div>
+              <div className="font-serif text-3xl lg:text-4xl font-normal text-[#00241b] mb-1">
+                50K<span className="text-[#c07c34]">+</span>
+              </div>
+              <div className="w-8 h-[2px] bg-[#c07c34] mb-3" />
+              <h4 className="font-semibold text-slate-800 text-sm mb-1">Successful Missions</h4>
+              <p className="text-slate-500 text-xs leading-relaxed">Surveys completed across rivers, lakes & oceans</p>
+            </div>
+
+            <div className="bg-white border border-slate-200/80 rounded-2xl p-6 text-center flex flex-col items-center justify-between shadow-sm">
+              <div className="w-12 h-12 rounded-full bg-emerald-50 text-[#00241b] flex items-center justify-center mb-4">
+                <span className="text-xl">🎯</span>
+              </div>
+              <div className="font-serif text-3xl lg:text-4xl font-normal text-[#00241b] mb-1">
+                99.8<span className="text-[#c07c34]">%</span>
+              </div>
+              <div className="w-8 h-[2px] bg-[#c07c34] mb-3" />
+              <h4 className="font-semibold text-slate-800 text-sm mb-1">Data Accuracy</h4>
+              <p className="text-slate-500 text-xs leading-relaxed">Precision you can rely on, every single time</p>
+            </div>
+
+            <div className="bg-white border border-slate-200/80 rounded-2xl p-6 text-center flex flex-col items-center justify-between shadow-sm">
+              <div className="w-12 h-12 rounded-full bg-emerald-50 text-[#00241b] flex items-center justify-center mb-4">
+                <span className="text-xl">🕒</span>
+              </div>
+              <div className="font-serif text-3xl lg:text-4xl font-normal text-[#00241b] mb-1">
+                24<span className="text-[#c07c34]">/7</span>
+              </div>
+              <div className="w-8 h-[2px] bg-[#c07c34] mb-3" />
+              <h4 className="font-semibold text-slate-800 text-sm mb-1">Live Support</h4>
+              <p className="text-slate-500 text-xs leading-relaxed">Our team is always here to help you</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ================= SECTION 4: OUR LIVE CATALOG PROFILES ================= */}
+      <section className="w-full max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-20">
+        <div className="text-center max-w-2xl mx-auto mb-12">
+          <h2 className="font-serif text-3xl sm:text-4xl font-normal text-[#00241b] mb-3">
+            Our Live Catalog Profiles
+          </h2>
+          <p className="text-slate-500 text-sm sm:text-base">
+            Deploy operational asset blueprints synchronizing with external cloud compilation nodes.
+          </p>
+        </div>
+
+        {loading ? (
+          <div className="text-center py-12 text-slate-400 font-medium">Syncing hardware profiles...</div>
+        ) : products.length === 0 ? (
+          <div className="text-center py-12 text-slate-400 font-medium">No active customized product cards compiled yet.</div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {products.slice(0, 8).map((product) => (
+              <ProductCard
+                key={product._id}
+                _id={product._id}
+                title={product.title}
+                price={product.price}
+                image={product.image}
+                category={product.category}
+                hasCustomization={product.hasCustomization}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* ================= BANNER TWO SECTION ================= */}
+      <section className="w-full bg-[#fafbf9] py-16 border-t border-slate-200/80">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <img 
+            src={bannerTwoImage} 
+            alt="Product Features Showcase" 
+            className="w-full h-auto object-contain rounded-2xl"
+          />
+        </div>
+      </section>
+
+      {/* ================= SECTION 6: OUR MISSION WORKFLOW ================= */}
+      <section className="w-full bg-[#f4f6f1] py-20 border-t border-slate-200/80">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <span className="text-[#c07c34] text-xs font-bold tracking-widest uppercase mb-2 block">HOW IT WORKS</span>
+            <h2 className="font-serif text-3xl sm:text-4xl text-[#00241b] font-normal mb-3">
+              Our Mission Workflow
+            </h2>
+            <div className="w-12 h-[2px] bg-[#c07c34] mx-auto mb-4" />
+            <p className="text-slate-500 text-sm sm:text-base">
+              From planning to insights - our intelligent workflow ensures seamless and accurate survey missions.
+            </p>
+          </div>
+
+          <div className="hidden lg:flex items-center justify-between max-w-5xl mx-auto mb-12 relative px-10">
+            <div className="absolute top-1/2 left-16 right-16 h-[2px] bg-slate-300 border-dashed border-t border-slate-400 -translate-y-1/2 z-0" />
+            {["01", "02", "03", "04", "05"].map((num, i) => (
+              <div key={i} className="relative z-10 flex flex-col items-center bg-[#f4f6f1] px-2">
+                <span className="text-xs font-bold text-slate-700 mb-2">{num}</span>
+                <div className="w-8 h-8 rounded-full bg-[#00241b] text-white flex items-center justify-center text-xs font-bold shadow">
+                  ✓
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+            <div className="bg-white border border-slate-200/80 rounded-2xl p-4 flex flex-col justify-between shadow-sm">
+              <div className="w-full h-32 rounded-xl bg-slate-900 overflow-hidden mb-4">
+                <img src="https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=400" alt="Plan Mission" className="w-full h-full object-cover" />
+              </div>
+              <h4 className="font-serif font-semibold text-slate-900 text-base mb-2 text-center">Plan Mission</h4>
+              <p className="text-slate-500 text-xs text-center leading-relaxed">
+                Plan your survey area, define waypoints and mission parameters using our intuitive planning tools.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Benchmark Product 1 */}
-              <div className="bg-white border border-slate-200 rounded-xl grid grid-cols-1 sm:grid-cols-[220px_1fr] overflow-hidden shadow-[0_4px_6px_-1px_rgba(0,0,0,0.02)]">
-                <div className="relative bg-[#01140f] min-h-[250px]">
-                  <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=500" alt="HydroDrone X" className="w-full h-full object-cover" />
-                </div>
-                <div className="p-8 flex flex-col gap-3 relative">
-                  <span className="absolute top-6 right-6 bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-1 rounded tracking-wide uppercase">
-                    TOP RATED
-                  </span>
-                  <h3 className="font-serif text-2xl text-[#00241b] m-0 pr-16">HydroDrone X</h3>
-                  <p className="text-slate-500 text-sm leading-relaxed m-0">
-                    Portable, ultra-lightweight autonomous boat designed for high-resolution rapid inland water mapping and environmental monitoring.
-                  </p>
-                  <div className="text-2xl font-semibold text-[#0c1c18] mt-auto pt-4">₹12,499.00</div>
-                  <button 
-                    type="button" 
-                    className="self-start bg-[#00241b] hover:bg-[#023629] text-white border-none px-5 py-2.5 text-sm font-semibold rounded-md cursor-pointer transition-colors duration-150 mt-2" 
-                    onClick={() => router.push("/products")}
-                  >
-                    Add to Configuration
-                  </button>
-                </div>
+            <div className="bg-white border border-slate-200/80 rounded-2xl p-4 flex flex-col justify-between shadow-sm">
+              <div className="w-full h-32 rounded-xl bg-slate-900 overflow-hidden mb-4">
+                <img src="https://images.unsplash.com/photo-1559136555-9303baea8ebd?q=80&w=400" alt="Deploy USV" className="w-full h-full object-cover" />
               </div>
+              <h4 className="font-serif font-semibold text-slate-900 text-base mb-2 text-center">Deploy USV</h4>
+              <p className="text-slate-500 text-xs text-center leading-relaxed">
+                Easily deploy the USV into the water. It's built for stability, endurance and all-weather performance.
+              </p>
+            </div>
 
-              {/* Benchmark Product 2 */}
-              <div className="bg-white border border-slate-200 rounded-xl grid grid-cols-1 sm:grid-cols-[220px_1fr] overflow-hidden shadow-[0_4px_6px_-1px_rgba(0,0,0,0.02)]">
-                <div className="relative bg-[#01140f] min-h-[250px]">
-                  <img src="https://images.unsplash.com/photo-1551244072-5d12893278ab?q=80&w=500" alt="SonarArray Pro" className="w-full h-full object-cover" />
-                </div>
-                <div className="p-8 flex flex-col gap-3 relative">
-                  <span className="absolute top-6 right-6 bg-slate-100 text-[#c07c34] text-[10px] font-bold px-2 py-1 rounded tracking-wide uppercase">
-                    HIGH ACCURACY
-                  </span>
-                  <h3 className="font-serif text-2xl text-[#00241b] m-0 pr-24">SonarArray Pro</h3>
-                  <p className="text-slate-500 text-sm leading-relaxed m-0">
-                    Single-beam dual-frequency transducer with integrated motion compensation layer and 0.01m accuracy threshold for industrial use.
-                  </p>
-                  <div className="text-2xl font-semibold text-[#0c1c18] mt-auto pt-4">₹4,850.00</div>
-                  <button 
-                    type="button" 
-                    className="self-start bg-white hover:bg-[#f8fafb] text-[#00241b] border border-slate-300 px-5 py-2.5 text-sm font-semibold rounded-md cursor-pointer transition-colors duration-150 mt-2"
-                  >
-                    View Technical Details
-                  </button>
-                </div>
+            <div className="bg-white border border-slate-200/80 rounded-2xl p-4 flex flex-col justify-between shadow-sm">
+              <div className="w-full h-32 rounded-xl bg-slate-900 overflow-hidden mb-4">
+                <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=400" alt="AI Navigation" className="w-full h-full object-cover" />
               </div>
+              <h4 className="font-serif font-semibold text-slate-900 text-base mb-2 text-center">AI Navigation</h4>
+              <p className="text-slate-500 text-xs text-center leading-relaxed">
+                Advanced AI algorithms and sensors navigate autonomously while avoiding obstacles and adapting to conditions.
+              </p>
+            </div>
+
+            <div className="bg-white border border-slate-200/80 rounded-2xl p-4 flex flex-col justify-between shadow-sm">
+              <div className="w-full h-32 rounded-xl bg-slate-900 overflow-hidden mb-4">
+                <img src="https://images.unsplash.com/photo-1551244072-5d12893278ab?q=80&w=400" alt="Collect Data" className="w-full h-full object-cover" />
+              </div>
+              <h4 className="font-serif font-semibold text-slate-900 text-base mb-2 text-center">Collect Data</h4>
+              <p className="text-slate-500 text-xs text-center leading-relaxed">
+                High-precision sensors collect real-time data including bathymetry, imagery and environmental parameters.
+              </p>
+            </div>
+
+            <div className="bg-white border border-slate-200/80 rounded-2xl p-4 flex flex-col justify-between shadow-sm">
+              <div className="w-full h-32 rounded-xl bg-slate-900 overflow-hidden mb-4">
+                <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=400" alt="Generate Insights" className="w-full h-full object-cover" />
+              </div>
+              <h4 className="font-serif font-semibold text-slate-900 text-base mb-2 text-center">Generate Insights</h4>
+              <p className="text-slate-500 text-xs text-center leading-relaxed">
+                Securely process and visualize your data. Generate actionable insights and export custom reports.
+              </p>
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* ================= SECTION 4: CATALOG PRODUCT PROFILE ENTRIES ================= */}
-        <section className="max-w-[1300px] mx-auto px-8 my-24">
-          <div className="text-center mb-12">
-            <h2 className="font-serif text-[2.5rem] md:text-[2.6rem] font-normal text-[#00241b] mb-2">
-              Our Live Catalog Profiles
+      {/* ================= SECTION 7: CLIENT REVIEWS ================= */}
+      <section className="w-full bg-[#fafbf9] py-20 border-t border-slate-200/80">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <span className="text-[#c07c34] text-xs font-bold tracking-widest uppercase mb-2 block">CLIENT REVIEWS</span>
+            <h2 className="font-serif text-3xl sm:text-4xl text-[#00241b] font-normal mb-3">
+              What our Clients say!
             </h2>
-            <p className="text-slate-500 text-[1.05rem]">
-              Deploy operational asset blueprints synchronizing with external cloud compilation nodes.
+            <div className="w-12 h-[2px] bg-[#c07c34] mx-auto mb-4" />
+            <p className="text-slate-500 text-sm sm:text-base">
+              Real experiences from professionals who trust and use our solutions.
             </p>
           </div>
 
-          {loading ? (
-            <p className="text-center text-slate-400 font-medium">Syncing hardware profiles...</p>
-          ) : products.length === 0 ? (
-            <p className="text-center text-slate-400 font-medium">No active customized product cards compiled yet.</p>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-12">
-              {products.slice(0, 8).map((product) => (
-                <ProductCard
-                  key={product._id}
-                  _id={product._id}
-                  title={product.title}
-                  price={product.price}
-                  image={product.image}
-                  category={product.category}
-                  hasCustomization={product.hasCustomization}
-                />
-              ))}
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
+            <div className="bg-white border border-slate-200/80 rounded-2xl p-6 flex flex-col items-center text-center shadow-sm">
+              <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=120" alt="John Doe" className="w-14 h-14 rounded-full object-cover mb-3" />
+              <h5 className="font-semibold text-slate-900 text-sm">John Doe</h5>
+              <div className="flex gap-0.5 text-amber-400 my-2">{"★".repeat(5)}</div>
+              <p className="text-slate-500 text-xs leading-relaxed">
+                I knew I was going to get great service, but you went above and beyond my expectations.
+              </p>
             </div>
-          )}
-        </section>
-      </div>
+
+            <div className="bg-white border border-slate-200/80 rounded-2xl p-6 flex flex-col items-center text-center shadow-sm">
+              <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?q=80&w=120" alt="Asa Walter" className="w-14 h-14 rounded-full object-cover mb-3" />
+              <h5 className="font-semibold text-slate-900 text-sm">Asa Walter</h5>
+              <div className="flex gap-0.5 text-amber-400 my-2">{"★".repeat(5)}</div>
+              <p className="text-slate-500 text-xs leading-relaxed">
+                This is the best thing that happened to my small business. They re-branded and re-vamped my company.
+              </p>
+            </div>
+
+            <div className="bg-white border-2 border-emerald-200 rounded-2xl p-6 flex flex-col items-center text-center shadow-md transform lg:-translate-y-2">
+              <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=120" alt="Zahid Miles" className="w-16 h-16 rounded-full object-cover mb-3 ring-2 ring-emerald-500/20" />
+              <h5 className="font-semibold text-slate-900 text-sm">Zahid Miles</h5>
+              <div className="flex gap-0.5 text-amber-400 my-2">{"★".repeat(5)}</div>
+              <p className="text-slate-600 text-xs leading-relaxed">
+                They are great. They did exactly what I needed. The friendly chaps are a real problem solvers. Loved working with them.
+              </p>
+            </div>
+
+            <div className="bg-white border border-slate-200/80 rounded-2xl p-6 flex flex-col items-center text-center shadow-sm">
+              <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=120" alt="Casper Leigh" className="w-14 h-14 rounded-full object-cover mb-3" />
+              <h5 className="font-semibold text-slate-900 text-sm">Casper Leigh</h5>
+              <div className="flex gap-0.5 text-amber-400 my-2">{"★".repeat(5)}</div>
+              <p className="text-slate-500 text-xs leading-relaxed">
+                Awesome services. I am really happy to be here because of their services. I will continue to use their services in future.
+              </p>
+            </div>
+
+            <div className="bg-white border border-slate-200/80 rounded-2xl p-6 flex flex-col items-center text-center shadow-sm">
+              <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=120" alt="Ciana Aminoff" className="w-14 h-14 rounded-full object-cover mb-3" />
+              <h5 className="font-semibold text-slate-900 text-sm">Ciana Aminoff</h5>
+              <div className="flex gap-0.5 text-amber-400 my-2">{"★".repeat(5)}</div>
+              <p className="text-slate-500 text-xs leading-relaxed">
+                By far the best service. This is the efficient services they've put to use. Everyone is so knowledgeable.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex justify-center items-center gap-2">
+            <div className="w-2.5 h-2.5 rounded-full bg-[#00241b]" />
+            <div className="w-2 h-2 rounded-full bg-slate-300" />
+            <div className="w-2 h-2 rounded-full bg-slate-300" />
+            <div className="w-2 h-2 rounded-full bg-slate-300" />
+          </div>
+        </div>
+      </section>
+
+      {/* ================= SECTION 8: GET IN TOUCH & MAP ================= */}
+      <section className="w-full bg-[#f4f6f1] py-20 border-t border-slate-200/80">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+          
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 mb-16 items-start">
+            <div className="lg:col-span-5 flex flex-col gap-6">
+              <div>
+                <h2 className="font-serif text-4xl text-[#00241b] font-normal mb-3">Get in touch</h2>
+                <div className="w-12 h-[2px] bg-[#c07c34] mb-4" />
+                <p className="text-slate-500 text-sm leading-relaxed">
+                  Have a question or need help? We're here for you. Reach out and our team will get back to you soon.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-6 mt-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-emerald-100/60 text-[#00241b] flex items-center justify-center shrink-0">
+                    <Mail size={20} />
+                  </div>
+                  <div>
+                    <h5 className="font-bold text-slate-900 text-sm">Email</h5>
+                    <p className="text-slate-600 text-sm">coe@senses.com</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-emerald-100/60 text-[#00241b] flex items-center justify-center shrink-0">
+                    <Phone size={20} />
+                  </div>
+                  <div>
+                    <h5 className="font-bold text-slate-900 text-sm">Phone</h5>
+                    <p className="text-slate-600 text-sm">+01881-232632</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-emerald-100/60 text-[#00241b] flex items-center justify-center shrink-0">
+                    <MapPin size={20} />
+                  </div>
+                  <div>
+                    <h5 className="font-bold text-slate-900 text-sm">Address</h5>
+                    <p className="text-slate-600 text-sm">Indian Institute of Technology, Ropar, Punjab, India</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="lg:col-span-7 bg-white border border-slate-200/80 rounded-3xl p-8 shadow-sm">
+              <form className="flex flex-col gap-5" onSubmit={(e) => e.preventDefault()}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-semibold text-slate-700">Your Name</label>
+                    <div className="relative">
+                      <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input 
+                        type="text" 
+                        placeholder="Your full name" 
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-[#00241b]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-semibold text-slate-700">Email address</label>
+                    <div className="relative">
+                      <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input 
+                        type="email" 
+                        placeholder="Your email address" 
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-[#00241b]"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-semibold text-slate-700">Message</label>
+                  <div className="relative">
+                    <MessageSquare size={16} className="absolute left-3.5 top-4 text-slate-400" />
+                    <textarea 
+                      rows={4} 
+                      placeholder="Write something..." 
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-[#00241b] resize-none"
+                    />
+                  </div>
+                </div>
+
+                <button 
+                  type="submit" 
+                  className="w-full bg-[#00241b] hover:bg-[#023629] text-white font-semibold py-3.5 rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-md mt-2"
+                >
+                  <Send size={16} /> Send Message
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <div className="w-full h-80 rounded-3xl overflow-hidden border border-slate-200 shadow-sm relative">
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3423.8217316654844!2d76.47131807629532!3d30.975472874467007!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3905542fe45e58f7%3A0xedd13e00e00d720b!2sIndian%20Institute%20of%20Technology%20Ropar!5e0!3m2!1sen!2sin!4v1722160000000!5m2!1sen!2sin"
+              width="100%"
+              height="100%"
+              style={{ border: 0 }}
+              allowFullScreen={false}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+          </div>
+
+        </div>
+      </section>
 
     </main>
   );

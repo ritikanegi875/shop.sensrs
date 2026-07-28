@@ -7,11 +7,13 @@ type Banner = {
   imageUrl: string;
   publicId?: string;
   isActive: boolean;
+  category?: string; // CHANGED
 };
 
 export default function AdminBannersPage() {
   const [banners, setBanners] = useState<Banner[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [bannerCategory, setBannerCategory] = useState<string>("hero"); // CHANGED
   const [previewUrl, setPreviewUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
@@ -81,6 +83,7 @@ export default function AdminBannersPage() {
         body: JSON.stringify({
           imageUrl: uploadData.imageUrl,
           publicId: uploadData.publicId,
+          category: bannerCategory, // CHANGED: Sending category to API
         }),
       });
 
@@ -95,6 +98,7 @@ export default function AdminBannersPage() {
       setMessage("Banner uploaded successfully");
       setSelectedFile(null);
       setPreviewUrl("");
+      setBannerCategory("hero");
       await fetchBanners();
     } catch (error) {
       console.error("UPLOAD BANNER ERROR:", error);
@@ -127,13 +131,26 @@ export default function AdminBannersPage() {
         {/* ================= PAGE HEADER ================= */}
         <div>
           <h1 className="text-4xl font-bold tracking-tight mb-1">Manage Banners</h1>
-          <p className="text-sm text-slate-500 font-medium">Upload banners from device and manage homepage slider images.</p>
+          <p className="text-sm text-slate-500 font-medium">Upload hero slider graphics or interactive feature section images.</p>
         </div>
 
         {/* ================= UPLOAD MANAGER BOX ================= */}
         <div className="border border-slate-200 rounded-[24px] p-6 md:p-8 bg-white flex flex-col gap-5 shadow-[0_4px_25px_rgba(0,0,0,0.01)]">
+          
           <div className="flex flex-col gap-2">
-            <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Select Banner Image</label>
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Banner Placement / Category</label>
+            <select
+              value={bannerCategory}
+              onChange={(e) => setBannerCategory(e.target.value)}
+              className="w-full text-sm text-slate-700 bg-white border border-slate-300 rounded-xl p-3 focus:outline-none focus:border-[#00241b]"
+            >
+              <option value="hero">Hero Slider Banner (Homepage Header)</option>
+              <option value="banner-two">Banner Two (Interactive Product Features Section)</option>
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Select Image File</label>
             <input 
               type="file" 
               accept="image/*" 
@@ -142,7 +159,6 @@ export default function AdminBannersPage() {
             />
           </div>
 
-          {/* Upload Local Live Previews */}
           {previewUrl && (
             <div className="flex flex-col gap-2">
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Image Preview</span>
@@ -156,20 +172,18 @@ export default function AdminBannersPage() {
             </div>
           )}
 
-          {/* Operations Message Prompt Line */}
           {message && (
             <p className={`text-xs font-semibold ${message.includes("successfully") ? "text-emerald-600" : "text-rose-500"}`}>
               {message}
             </p>
           )}
 
-          {/* Action Trigger Row */}
           <div className="flex justify-end pt-2 border-t border-slate-100">
             <button
               type="button"
               onClick={handleUploadBanner}
               disabled={uploading}
-              className="rounded-xl bg-[#00241b] hover:bg-[#023629] text-white px-6 py-2.5 text-xs font-bold tracking-wide transition-all duration-150 disabled:bg-slate-200 shadow-sm active:scale-95 uppercase"
+              className="rounded-xl bg-[#00241b] hover:bg-[#023629] text-white px-6 py-2.5 text-xs font-bold tracking-wide transition-all duration-150 disabled:bg-slate-200 shadow-sm active:scale-95 uppercase cursor-pointer"
             >
               {uploading ? "Uploading..." : "Upload Banner"}
             </button>
@@ -178,7 +192,7 @@ export default function AdminBannersPage() {
 
         {/* ================= ACTIVE BANNER DISPLAY IMAGES GRID ================= */}
         <div className="flex flex-col gap-4">
-          <h2 className="text-lg font-bold text-slate-800 m-0 tracking-tight">Active Homepage Banners</h2>
+          <h2 className="text-lg font-bold text-slate-800 m-0 tracking-tight">All Active System Banners</h2>
           
           {banners.length === 0 ? (
             <p className="text-center text-slate-400 font-medium py-16 bg-white rounded-2xl border border-slate-200">
@@ -191,6 +205,12 @@ export default function AdminBannersPage() {
                   className="group border border-slate-200 rounded-[24px] p-4 bg-white flex flex-col gap-4 shadow-sm hover:shadow-md transition-shadow duration-200" 
                   key={banner._id}
                 >
+                  <div className="flex justify-between items-center px-1">
+                    <span className="text-[10px] font-bold tracking-widest uppercase bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md">
+                      {banner.category === "banner-two" ? "Banner Two (Features)" : "Hero Slider"}
+                    </span>
+                  </div>
+
                   <div className="relative aspect-[21/9] w-full overflow-hidden rounded-xl border border-slate-100 bg-slate-50">
                     <img
                       src={banner.imageUrl}
@@ -203,7 +223,7 @@ export default function AdminBannersPage() {
                     <button
                       type="button"
                       onClick={() => handleDeleteBanner(banner._id)}
-                      className="text-xs font-semibold text-rose-500 hover:text-rose-700 transition-colors duration-150 active:scale-95"
+                      className="text-xs font-semibold text-rose-500 hover:text-rose-700 transition-colors duration-150 active:scale-95 cursor-pointer"
                     >
                       Delete Banner
                     </button>

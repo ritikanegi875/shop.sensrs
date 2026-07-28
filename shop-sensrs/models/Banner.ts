@@ -16,6 +16,11 @@ const BannerSchema = new Schema(
       type: Boolean,
       default: true,
     },
+    category: {
+      type: String,
+      default: "hero",
+      trim: true,
+    },
   },
   {
     timestamps: true,

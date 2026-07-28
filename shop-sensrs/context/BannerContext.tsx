@@ -8,60 +8,76 @@ import {
   ReactNode,
 } from "react";
 
-type BannerContextType = {
-  banners: string[];
-  addBanner: (banner: string) => void;
-  removeBanner: (index: number) => void;
-  replaceBanner: (index: number, banner: string) => void;
+type BannerItem = {
+  _id: string;
+  imageUrl: string;
+  category?: string; // Must match our new database field
 };
 
-const defaultBanners = [
-  "/images/banner1.jpg",
-  "/images/banner2.jpg",
-  "/images/banner3.jpg",
-];
+type BannerContextType = {
+  banners: string[]; // Explicitly for the Hero Slider
+  bannerTwoUrl: string; // Explicitly for Banner Two
+  loading: boolean;
+  refreshBanners: () => Promise<void>;
+};
 
 const BannerContext = createContext<BannerContextType | undefined>(undefined);
 
 export function BannerProvider({ children }: { children: ReactNode }) {
   const [banners, setBanners] = useState<string[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  const [bannerTwoUrl, setBannerTwoUrl] = useState<string>("https://images.unsplash.com/photo-1559136555-9303baea8ebd?q=80&w=1920");
+  const [loading, setLoading] = useState(true);
+
+  const fetchBanners = async () => {
+    try {
+      const res = await fetch("/api/banners", { cache: "no-store" });
+      const data = await res.json();
+
+      if (data.success && data.banners) {
+        const allBanners: BannerItem[] = data.banners;
+
+        // STRICT SEPARATION: Only grab banners where category is "hero" (or undefined for legacy)
+        const heroList = allBanners
+          .filter((b) => !b.category || b.category === "hero")
+          .map((b) => b.imageUrl);
+
+        // STRICT SEPARATION: Only grab the banner where category is "banner-two"
+        const bannerTwoItem = allBanners.find((b) => b.category === "banner-two");
+
+        if (heroList.length > 0) {
+          setBanners(heroList);
+        } else {
+          // Fallback if no hero banners exist
+          setBanners([
+            "/images/banner1.jpg",
+            "/images/banner2.jpg",
+            "/images/banner3.jpg",
+          ]);
+        }
+
+        if (bannerTwoItem && bannerTwoItem.imageUrl) {
+          setBannerTwoUrl(bannerTwoItem.imageUrl);
+        }
+      }
+    } catch (error) {
+      console.error("CONTEXT FETCH BANNERS ERROR:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const savedBanners = localStorage.getItem("shop-sensrs-banners");
-
-    if (savedBanners) {
-      setBanners(JSON.parse(savedBanners));
-    } else {
-      setBanners(defaultBanners);
-    }
-
-    setLoaded(true);
+    fetchBanners();
   }, []);
-
-  useEffect(() => {
-    if (loaded) {
-      localStorage.setItem("shop-sensrs-banners", JSON.stringify(banners));
-    }
-  }, [banners, loaded]);
-
-  const addBanner = (banner: string) => {
-    setBanners((prev) => [...prev, banner]);
-  };
-
-  const removeBanner = (index: number) => {
-    setBanners((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const replaceBanner = (index: number, banner: string) => {
-    setBanners((prev) =>
-      prev.map((item, i) => (i === index ? banner : item))
-    );
-  };
 
   return (
     <BannerContext.Provider
-      value={{ banners, addBanner, removeBanner, replaceBanner }}
+      value={{ 
+        banners, 
+        bannerTwoUrl, 
+        loading, 
+        refreshBanners: fetchBanners 
+      }}
     >
       {children}
     </BannerContext.Provider>

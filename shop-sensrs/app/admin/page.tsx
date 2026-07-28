@@ -23,6 +23,7 @@ import {
   Image as ImageIcon,
   BarChart3,
   Download,
+  Video,
   Settings
 } from "lucide-react";
 
@@ -107,11 +108,10 @@ export default function AdminPage() {
     { label: "Products", href: "/admin/products", icon: ShoppingBag },
     { label: "Orders", href: "/admin/orders", icon: ShoppingCart },
     { label: "Appointments", href: "/admin/appointments", icon: Calendar },
-  //  { label: "Customers", href: "/admin/customers", icon: Users },
     { label: "Banners", href: "/admin/banners", icon: ImageIcon },
+    { label: "Videos", href: "/admin/videos", icon: Video },
     { label: "Reports", href: "/admin/reports", icon: BarChart3 },
     { label: "Export Records", href: "/api/export", icon: Download, isExternal: true },
-    // { label: "Settings", href: "/admin/settings", icon: Settings },
   ];
 
   return (
@@ -181,7 +181,6 @@ export default function AdminPage() {
                     <div>
                       <span style={{ fontSize: "13px", fontWeight: "600", color: "#64748b" }}>Total Orders</span>
                       <h2 style={{ fontSize: "28px", fontWeight: "700", color: "#0f172a", margin: "8px 0 4px 0" }}>{stats.totalOrders}</h2>
-                      {/* <span style={{ fontSize: "12px", color: "#16a34a", fontWeight: "500" }}>▲ +20% vs last 7 days</span> */}
                     </div>
                     <div style={{ width: "40px", height: "40px", borderRadius: "50%", backgroundColor: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center", color: "#16a34a" }}>
                       <ShoppingCart size={20} />
@@ -195,7 +194,6 @@ export default function AdminPage() {
                     <div>
                       <span style={{ fontSize: "13px", fontWeight: "600", color: "#64748b" }}>Total Appointments</span>
                       <h2 style={{ fontSize: "28px", fontWeight: "700", color: "#0f172a", margin: "8px 0 4px 0" }}>{stats.totalAppointments}</h2>
-                      {/* <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "500" }}>+0% vs last 7 days</span> */}
                     </div>
                     <div style={{ width: "40px", height: "40px", borderRadius: "50%", backgroundColor: "#e0f2fe", display: "flex", alignItems: "center", justifyContent: "center", color: "#0284c7" }}>
                       <Calendar size={20} />
@@ -209,7 +207,6 @@ export default function AdminPage() {
                     <div>
                       <span style={{ fontSize: "13px", fontWeight: "600", color: "#64748b" }}>Total Users</span>
                       <h2 style={{ fontSize: "28px", fontWeight: "700", color: "#0f172a", margin: "8px 0 4px 0" }}>{stats.totalUsers}</h2>
-                      {/* <span style={{ fontSize: "12px", color: "#16a34a", fontWeight: "500" }}>▲ +25% vs last 7 days</span> */}
                     </div>
                     <div style={{ width: "40px", height: "40px", borderRadius: "50%", backgroundColor: "#eff6ff", display: "flex", alignItems: "center", justifyContent: "center", color: "#2563eb" }}>
                       <Users size={20} />
@@ -223,7 +220,6 @@ export default function AdminPage() {
                     <div>
                       <span style={{ fontSize: "13px", fontWeight: "600", color: "#64748b" }}>Total Revenue</span>
                       <h2 style={{ fontSize: "28px", fontWeight: "700", color: "#0f172a", margin: "8px 0 4px 0" }}>₹{(stats.totalRevenue || 0).toLocaleString("en-IN")}</h2>
-                      {/* <span style={{ fontSize: "12px", color: "#16a34a", fontWeight: "500" }}>▲ +18% vs last 7 days</span> */}
                     </div>
                     <div style={{ width: "40px", height: "40px", borderRadius: "50%", backgroundColor: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center", color: "#16a34a" }}>
                       <span style={{ fontSize: "18px", fontWeight: "bold" }}>₹</span>
@@ -237,7 +233,6 @@ export default function AdminPage() {
                     <div>
                       <span style={{ fontSize: "13px", fontWeight: "600", color: "#64748b" }}>Pending Orders</span>
                       <h2 style={{ fontSize: "28px", fontWeight: "700", color: "#0f172a", margin: "8px 0 4px 0" }}>{stats.pendingOrders}</h2>
-                      {/* <span style={{ fontSize: "12px", color: "#ea580c", fontWeight: "500" }}>▲ +50% vs last 7 days</span> */}
                     </div>
                     <div style={{ width: "40px", height: "40px", borderRadius: "50%", backgroundColor: "#fff7ed", display: "flex", alignItems: "center", justifyContent: "center", color: "#ea580c" }}>
                       <ShoppingBag size={20} />
@@ -251,7 +246,6 @@ export default function AdminPage() {
                     <div>
                       <span style={{ fontSize: "13px", fontWeight: "600", color: "#64748b" }}>Pending Appointments</span>
                       <h2 style={{ fontSize: "28px", fontWeight: "700", color: "#0f172a", margin: "8px 0 4px 0" }}>{stats.pendingAppointments}</h2>
-                      {/* <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "500" }}>+0% vs last 7 days</span> */}
                     </div>
                     <div style={{ width: "40px", height: "40px", borderRadius: "50%", backgroundColor: "#f5f3ff", display: "flex", alignItems: "center", justifyContent: "center", color: "#7c3aed" }}>
                       <Calendar size={20} />
@@ -317,11 +311,12 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* QUICK LINKS GRID */}
-              <div className="admin-actions-grid" style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "16px", marginBottom: "32px" }}>
+              {/* QUICK LINKS GRID (UPDATED TO 6 CARDS INCLUDING MANAGE VIDEOS) */}
+              <div className="admin-actions-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "32px" }}>
                 {[
                   { title: "Manage Products", desc: "Add, edit, and delete product listings.", href: "/admin/products", icon: ShoppingBag, color: "#f0fdf4", iconColor: "#16a34a" },
                   { title: "Manage Banners", desc: "Upload and manage homepage banners.", href: "/admin/banners", icon: ImageIcon, color: "#f5f3ff", iconColor: "#7c3aed" },
+                  { title: "Manage Videos", desc: "Add and update MP4 links for mobile slider.", href: "/admin/videos", icon: Video, color: "#fef3c7", iconColor: "#d97706" },
                   { title: "View Orders", desc: "Check customer orders and update order status.", href: "/admin/orders", icon: ShoppingCart, color: "#fff7ed", iconColor: "#ea580c" },
                   { title: "View Appointments", desc: "Manage appointments and update status.", href: "/admin/appointments", icon: Calendar, color: "#e0f2fe", iconColor: "#0284c7" },
                   { title: "Export Records", desc: "Download orders and appointments in Excel.", href: "/api/export", icon: Download, color: "#f0fdf4", iconColor: "#16a34a", isExternal: true },

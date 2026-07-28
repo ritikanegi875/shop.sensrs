@@ -34,30 +34,6 @@ type VideoItem = {
   videoUrl: string;
 };
 
-const defaultVideos: VideoItem[] = [
-  {
-    title: "Autonomous Surveyor Pro",
-    tag: "PRODUCT DEMO",
-    desc: "See how our USV delivers precise survey data with advanced autonomy.",
-    duration: "02:35",
-    videoUrl: "https://www.youtube.com/watch?v=ScMzIvxBSi4",
-  },
-  {
-    title: "Survey in Action",
-    tag: "FEATURED VIDEO",
-    desc: "Real-time operation of USV-X1 Pro in complex water environments.",
-    duration: "03:42",
-    videoUrl: "https://www.youtube.com/watch?v=jNQXAC9IVRw",
-  },
-  {
-    title: "Live Deployment",
-    tag: "FIELD DEPLOYMENT",
-    desc: "Watch our product deployed in real-world conditions for mapping and monitoring.",
-    duration: "03:18",
-    videoUrl: "https://www.youtube.com/watch?v=LXb3EKWsInQ",
-  },
-];
-
 function getYouTubeId(url: string): string | null {
   if (!url) return null;
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
@@ -75,7 +51,7 @@ function getYouTubeThumbnail(url: string): string {
   if (videoId) {
     return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
   }
-  return "https://images.unsplash.com/photo-1559136555-9303baea8ebd?q=80&w=800";
+  return "";
 }
 
 export default function HomePage() {
@@ -84,10 +60,10 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   
   const [heroBanners, setHeroBanners] = useState<Banner[]>([]);
-  const [bannerTwoImage, setBannerTwoImage] = useState<string>("https://images.unsplash.com/photo-1559136555-9303baea8ebd?q=80&w=1920");
+  const [bannerTwoImage, setBannerTwoImage] = useState<string>("");
   const [activeIndex, setActiveIndex] = useState(0);
 
-  const [videoList, setVideoList] = useState<VideoItem[]>(defaultVideos);
+  const [videoList, setVideoList] = useState<VideoItem[]>([]);
   const [videoIndex, setVideoIndex] = useState(0);
   const [playingVideo, setPlayingVideo] = useState<VideoItem | null>(null);
   const [isPaused, setIsPaused] = useState(false);
@@ -120,23 +96,17 @@ export default function HomePage() {
         const vidRes = await fetch("/api/videos", { cache: "no-store" });
         const vidData = await vidRes.json();
         if (vidData.success && Array.isArray(vidData.videos) && vidData.videos.length > 0) {
-          const dbVideos = vidData.videos.map((v: any, idx: number) => ({
+          const dbVideos = vidData.videos.map((v: any) => ({
             _id: v._id,
-            title: v.title || defaultVideos[idx % defaultVideos.length].title,
-            tag: v.tag || defaultVideos[idx % defaultVideos.length].tag,
-            desc: v.desc || defaultVideos[idx % defaultVideos.length].desc,
+            title: v.title || "Featured Video",
+            tag: v.tag || "PRODUCT DEMO",
+            desc: v.desc || "Explore our latest technology in action.",
             duration: v.duration || "03:15",
             thumb: getYouTubeThumbnail(v.videoUrl || v.url),
             videoUrl: v.videoUrl || v.url || "",
           })).filter((v: VideoItem) => Boolean(v.videoUrl));
 
-          if (dbVideos.length > 0) {
-            if (dbVideos.length < 3) {
-              setVideoList([...dbVideos, ...defaultVideos.slice(dbVideos.length)]);
-            } else {
-              setVideoList(dbVideos);
-            }
-          }
+          setVideoList(dbVideos);
         }
       } catch (error) {
         console.error("DATA FETCH ERROR:", error);
@@ -157,7 +127,7 @@ export default function HomePage() {
   }, [heroBanners]);
 
   useEffect(() => {
-    if (isPaused || videoList.length === 0) return;
+    if (isPaused || videoList.length <= 1) return;
 
     const autoSlideTimer = setInterval(() => {
       setVideoIndex((prev) => (prev + 1) % videoList.length);
@@ -167,10 +137,12 @@ export default function HomePage() {
   }, [isPaused, videoList]);
 
   const handlePrevVideo = () => {
+    if (videoList.length === 0) return;
     setVideoIndex((prev) => (prev - 1 + videoList.length) % videoList.length);
   };
 
   const handleNextVideo = () => {
+    if (videoList.length === 0) return;
     setVideoIndex((prev) => (prev + 1) % videoList.length);
   };
 
@@ -179,19 +151,19 @@ export default function HomePage() {
     if (total === 0) return [];
 
     const list = [];
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < Math.min(3, total > 0 ? 3 : 0); i++) {
       const targetIdx = (videoIndex + i) % total;
       list.push({
         ...videoList[targetIdx],
         originalIndex: targetIdx,
-        isCenter: i === 1,
+        isCenter: i === 1 || total === 1, // Make it center if it's the middle one OR the only one
       });
     }
     return list;
   }, [videoIndex, videoList]);
 
   const handleScrollToContent = () => {
-    const targetSection = document.getElementById("video-showcase-section");
+    const targetSection = document.getElementById("video-showcase-section") || document.getElementById("live-catalog-section");
     if (targetSection) {
       targetSection.scrollIntoView({ behavior: "smooth" });
     }
@@ -201,40 +173,48 @@ export default function HomePage() {
     if (heroBanners.length > 0 && heroBanners[activeIndex]) {
       return heroBanners[activeIndex].imageUrl;
     }
-    return "https://images.unsplash.com/photo-1559136555-9303baea8ebd?q=80&w=1920";
+    return "";
   }, [heroBanners, activeIndex]);
 
   return (
     <main className="w-full bg-[#fafbf9] text-[#0c1c18] font-sans antialiased overflow-x-hidden selection:bg-[#00241b] selection:text-white">
       
       {/* ================= SECTION 1: HERO SECTION ================= */}
-      <section 
-        className="relative w-full min-h-[90vh] lg:min-h-screen flex items-center px-6 sm:px-12 lg:px-20 py-16 bg-center bg-cover bg-no-repeat transition-all duration-750"
-        style={{
-          backgroundImage: `linear-gradient(to right, rgba(1, 20, 15, 0.92) 40%, rgba(1, 20, 15, 0.45) 100%), url('${currentHeroBg}')`
-        }}
-      >
-        <div className="relative z-10 w-full max-w-4xl mx-auto lg:mx-0 lg:pl-6 text-left">
-          <span className="inline-flex items-center gap-1.5 bg-white/10 text-[#dfc886] text-xs font-bold tracking-[0.15em] px-3.5 py-1.5 rounded border border-white/10 uppercase mb-6 backdrop-blur-md">
+      <section className="relative w-full min-h-[90vh] lg:min-h-screen flex items-center px-6 sm:px-12 lg:px-20 py-16 bg-[#01140f] overflow-hidden transition-all duration-750">
+        
+        {/* Background Image fixed for mobile responsiveness */}
+        {currentHeroBg && (
+          <img 
+            src={currentHeroBg} 
+            alt="Hero Background" 
+            className="absolute inset-0 w-full h-full object-cover object-[75%_center] md:object-center z-0 opacity-90"
+          />
+        )}
+        
+        {/* Responsive Gradient Overlay (Allows image to show through nicely on mobile) */}
+        <div className="absolute inset-0 z-0 bg-gradient-to-b md:bg-gradient-to-r from-[#01140f]/95 via-[#01140f]/80 md:via-[#01140f]/60 to-transparent" />
+
+        <div className="relative z-10 w-full max-w-4xl mx-auto lg:mx-0 lg:pl-6 text-left pt-12 md:pt-0">
+          <span className="inline-flex items-center gap-1.5 bg-white/10 text-[#dfc886] text-[10px] md:text-xs font-bold tracking-[0.15em] px-3.5 py-1.5 rounded border border-white/10 uppercase mb-6 backdrop-blur-md">
             <span>⚓</span> INNOVATION UNDER SURFACE
           </span>
-          <h1 className="font-serif text-4xl sm:text-6xl lg:text-[4.2rem] text-white font-normal leading-[1.1] mb-6">
+          <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl lg:text-[4.2rem] text-white font-normal leading-[1.1] mb-6 drop-shadow-md">
             Precision Marine Engineering
           </h1>
-          <p className="text-base sm:text-lg text-slate-300 max-w-xl leading-relaxed mb-10">
+          <p className="text-sm sm:text-base md:text-lg text-slate-300 max-w-xl leading-relaxed mb-10 drop-shadow">
             Pioneering the future of autonomous marine exploration with industrial-grade unmanned surface vehicles and high-fidelity sensory arrays.
           </p>
           <div className="flex flex-wrap gap-4">
             <button 
               type="button" 
-              className="bg-[#dfc886] hover:bg-[#d0b36b] text-[#01140f] px-7 py-3.5 text-sm sm:text-base font-semibold rounded cursor-pointer transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-xl"
+              className="bg-[#dfc886] hover:bg-[#d0b36b] text-[#01140f] px-6 md:px-7 py-3 md:py-3.5 text-sm md:text-base font-semibold rounded cursor-pointer transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-xl"
               onClick={() => router.push("/products")}
             >
               Explore Systems <span>➔</span>
             </button>
             <button 
               type="button" 
-              className="bg-white/10 hover:bg-white/20 text-white border border-white/20 px-7 py-3.5 text-sm sm:text-base font-semibold rounded cursor-pointer transition-all duration-200 backdrop-blur-sm"
+              className="bg-white/10 hover:bg-white/20 text-white border border-white/20 px-6 md:px-7 py-3 md:py-3.5 text-sm md:text-base font-semibold rounded cursor-pointer transition-all duration-200 backdrop-blur-sm"
               onClick={handleScrollToContent}
             >
               Watch Tech Demo
@@ -267,124 +247,134 @@ export default function HomePage() {
       </section>
 
       {/* ================= SECTION 2: HORIZONTAL WIDESCREEN YOUTUBE VIDEO SLIDER ================= */}
-      <section 
-        id="video-showcase-section" 
-        className="w-full bg-[#fbfdf9] pt-16 pb-22 px-6 sm:px-8 lg:px-12 relative border-t border-slate-200/80"
-        onMouseEnter={() => setIsPaused(true)}
-        onMouseLeave={() => setIsPaused(false)}
-      >
-        <div className="max-w-5xl mx-auto">
-          
-          <div className="text-center max-w-xl mx-auto mb-10">
-            <span className="text-[#c07c34] text-xs font-bold tracking-[0.2em] uppercase mb-1.5 block">
-              VIDEOS
-            </span>
-            <h2 className="font-serif text-3xl sm:text-4xl font-normal text-[#00241b] mb-2">
-              Watch our products in action
-            </h2>
-            <div className="w-12 h-[2px] bg-[#c07c34] mx-auto mb-3" />
-            <p className="text-slate-500 text-xs sm:text-sm leading-relaxed">
-              Explore product demos, field operations and real-world deployments.
-            </p>
-          </div>
-
-          <div className="relative px-2 sm:px-6 pt-2 pb-4">
+      {videoList.length > 0 && (
+        <section 
+          id="video-showcase-section" 
+          className="w-full bg-[#fbfdf9] pt-16 pb-22 px-6 sm:px-8 lg:px-12 relative border-t border-slate-200/80"
+          onMouseEnter={() => setIsPaused(true)}
+          onMouseLeave={() => setIsPaused(false)}
+        >
+          <div className="max-w-5xl mx-auto">
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-6 items-stretch">
-              {visibleVideos.map((video, idx) => {
-                const isCenter = video.isCenter;
-                const thumbImg = getYouTubeThumbnail(video.videoUrl) || video.thumb;
-
-                return (
-                  <div 
-                    key={`${video.originalIndex}-${idx}`}
-                    onClick={() => setPlayingVideo(video)}
-                    className={`bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer group flex flex-col justify-between ${
-                      isCenter 
-                        ? "md:-translate-y-2.5 shadow-lg ring-1 ring-slate-200 z-20" 
-                        : "z-10"
-                    }`}
-                  >
-                    <div>
-                      <div className="relative aspect-[16/9] bg-slate-900 overflow-hidden">
-                        <img 
-                          src={thumbImg} 
-                          alt={video.title} 
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-                        />
-                        
-                        <div className="absolute inset-0 bg-black/25 group-hover:bg-black/15 transition-colors flex items-center justify-center">
-                          {isCenter ? (
-                            <div className="w-11 h-11 rounded-full bg-white text-[#00241b] flex items-center justify-center pl-0.5 shadow-lg group-hover:scale-110 transition-transform">
-                              <Play size={18} fill="#00241b" className="text-[#00241b]" />
-                            </div>
-                          ) : (
-                            <div className="w-10 h-10 rounded-full border-2 border-white/80 bg-black/20 backdrop-blur-xs text-white flex items-center justify-center pl-0.5 shadow-md group-hover:scale-110 transition-transform">
-                              <Play size={15} fill="white" className="text-white" />
-                            </div>
-                          )}
-                        </div>
-
-                        <span className="absolute bottom-2.5 right-2.5 bg-black/80 text-white text-[9px] font-semibold px-1.5 py-0.5 rounded">
-                          {video.duration || "02:35"}
-                        </span>
-                      </div>
-
-                      <div className="p-5">
-                        <span className="inline-block bg-[#fdf3e7] text-[#c07c34] text-[9px] font-bold tracking-wider uppercase px-2 py-0.5 rounded mb-2">
-                          {video.tag || "PRODUCT DEMO"}
-                        </span>
-                        <h3 className="font-serif text-lg text-[#00241b] font-normal mb-1.5 leading-snug">
-                          {video.title}
-                        </h3>
-                        <p className="text-slate-500 text-xs leading-relaxed line-clamp-2">
-                          {video.desc}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="px-5 pb-5 pt-0 flex justify-end">
-                      <div className="w-7 h-7 rounded-lg border border-amber-200/80 bg-[#fdf3e7]/80 flex items-center justify-center text-[#c07c34] group-hover:bg-[#00241b] group-hover:text-white group-hover:border-[#00241b] transition-all">
-                        <ArrowUpRight size={14} />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="text-center max-w-xl mx-auto mb-10">
+              <span className="text-[#c07c34] text-xs font-bold tracking-[0.2em] uppercase mb-1.5 block">
+                VIDEOS
+              </span>
+              <h2 className="font-serif text-3xl sm:text-4xl font-normal text-[#00241b] mb-2">
+                Watch our products in action
+              </h2>
+              <div className="w-12 h-[2px] bg-[#c07c34] mx-auto mb-3" />
+              <p className="text-slate-500 text-xs sm:text-sm leading-relaxed">
+                Explore product demos, field operations and real-world deployments.
+              </p>
             </div>
 
-            <button 
-              type="button"
-              onClick={handlePrevVideo}
-              className="flex absolute -left-2 sm:-left-4 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white border border-slate-200 items-center justify-center text-slate-700 shadow-md hover:bg-[#00241b] hover:text-white transition-all cursor-pointer z-30"
-            >
-              <ChevronLeft size={18} />
-            </button>
+            <div className="relative px-2 sm:px-6 pt-2 pb-4">
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-6 items-stretch justify-center">
+                {visibleVideos.map((video, idx) => {
+                  const isCenter = video.isCenter;
+                  const thumbImg = video.thumb;
 
-            <button 
-              type="button"
-              onClick={handleNextVideo}
-              className="flex absolute -right-2 sm:-right-4 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white border border-slate-200 items-center justify-center text-slate-700 shadow-md hover:bg-[#00241b] hover:text-white transition-all cursor-pointer z-30"
-            >
-              <ChevronRight size={18} />
-            </button>
+                  return (
+                    <div 
+                      key={`${video.originalIndex}-${idx}`}
+                      onClick={() => setPlayingVideo(video)}
+                      className={`bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer group flex flex-col justify-between ${
+                        isCenter 
+                          ? "md:-translate-y-2.5 shadow-lg ring-1 ring-slate-200 z-20" 
+                          : "z-10"
+                      }`}
+                    >
+                      <div>
+                        <div className="relative aspect-[16/9] bg-slate-900 overflow-hidden">
+                          {thumbImg && (
+                            <img 
+                              src={thumbImg} 
+                              alt={video.title} 
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                            />
+                          )}
+                          
+                          <div className="absolute inset-0 bg-black/25 group-hover:bg-black/15 transition-colors flex items-center justify-center">
+                            {isCenter ? (
+                              <div className="w-11 h-11 rounded-full bg-white text-[#00241b] flex items-center justify-center pl-0.5 shadow-lg group-hover:scale-110 transition-transform">
+                                <Play size={18} fill="#00241b" className="text-[#00241b]" />
+                              </div>
+                            ) : (
+                              <div className="w-10 h-10 rounded-full border-2 border-white/80 bg-black/20 backdrop-blur-xs text-white flex items-center justify-center pl-0.5 shadow-md group-hover:scale-110 transition-transform">
+                                <Play size={15} fill="white" className="text-white" />
+                              </div>
+                            )}
+                          </div>
+
+                          <span className="absolute bottom-2.5 right-2.5 bg-black/80 text-white text-[9px] font-semibold px-1.5 py-0.5 rounded">
+                            {video.duration || "02:35"}
+                          </span>
+                        </div>
+
+                        <div className="p-5">
+                          <span className="inline-block bg-[#fdf3e7] text-[#c07c34] text-[9px] font-bold tracking-wider uppercase px-2 py-0.5 rounded mb-2">
+                            {video.tag}
+                          </span>
+                          <h3 className="font-serif text-lg text-[#00241b] font-normal mb-1.5 leading-snug">
+                            {video.title}
+                          </h3>
+                          <p className="text-slate-500 text-xs leading-relaxed line-clamp-2">
+                            {video.desc}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="px-5 pb-5 pt-0 flex justify-end">
+                        <div className="w-7 h-7 rounded-lg border border-amber-200/80 bg-[#fdf3e7]/80 flex items-center justify-center text-[#c07c34] group-hover:bg-[#00241b] group-hover:text-white group-hover:border-[#00241b] transition-all">
+                          <ArrowUpRight size={14} />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {videoList.length > 1 && (
+                <>
+                  <button 
+                    type="button"
+                    onClick={handlePrevVideo}
+                    className="flex absolute -left-2 sm:-left-4 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white border border-slate-200 items-center justify-center text-slate-700 shadow-md hover:bg-[#00241b] hover:text-white transition-all cursor-pointer z-30"
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+
+                  <button 
+                    type="button"
+                    onClick={handleNextVideo}
+                    className="flex absolute -right-2 sm:-right-4 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white border border-slate-200 items-center justify-center text-slate-700 shadow-md hover:bg-[#00241b] hover:text-white transition-all cursor-pointer z-30"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                </>
+              )}
+            </div>
+
+            {videoList.length > 1 && (
+              <div className="flex justify-center items-center gap-2 mt-6">
+                {videoList.map((_, dotIdx) => (
+                  <button
+                    key={dotIdx}
+                    type="button"
+                    onClick={() => setVideoIndex(dotIdx)}
+                    className={`transition-all rounded-full cursor-pointer ${
+                      videoIndex === dotIdx ? "w-4 h-2 bg-[#00241b]" : "w-2 h-2 bg-slate-300 hover:bg-slate-400"
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
+
           </div>
-
-          <div className="flex justify-center items-center gap-2 mt-6">
-            {videoList.map((_, dotIdx) => (
-              <button
-                key={dotIdx}
-                type="button"
-                onClick={() => setVideoIndex(dotIdx)}
-                className={`transition-all rounded-full cursor-pointer ${
-                  videoIndex === dotIdx ? "w-4 h-2 bg-[#00241b]" : "w-2 h-2 bg-slate-300 hover:bg-slate-400"
-                }`}
-              />
-            ))}
-          </div>
-
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* ================= YOUTUBE VIDEO PLAYER MODAL ================= */}
       {playingVideo && (
@@ -498,7 +488,7 @@ export default function HomePage() {
       </section>
 
       {/* ================= SECTION 4: OUR LIVE CATALOG PROFILES ================= */}
-      <section className="w-full max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-20">
+      <section id="live-catalog-section" className="w-full max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-20">
         <div className="text-center max-w-2xl mx-auto mb-12">
           <h2 className="font-serif text-3xl sm:text-4xl font-normal text-[#00241b] mb-3">
             Our Live Catalog Profiles
@@ -529,16 +519,18 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* ================= BANNER TWO SECTION ================= */}
-      <section className="w-full bg-[#fafbf9] py-16 border-t border-slate-200/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <img 
-            src={bannerTwoImage} 
-            alt="Product Features Showcase" 
-            className="w-full h-auto object-contain rounded-2xl"
-          />
-        </div>
-      </section>
+      {/* ================= BANNER TWO SECTION (DYNAMIC ADMIN IMAGE ONLY) ================= */}
+      {bannerTwoImage && (
+        <section className="w-full bg-[#fafbf9] pb-20 border-slate-200/80">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <img 
+              src={bannerTwoImage} 
+              alt="Product Features Showcase" 
+              className="w-full h-auto object-contain rounded-2xl shadow-sm border border-slate-200/60"
+            />
+          </div>
+        </section>
+      )}
 
       {/* ================= SECTION 6: OUR MISSION WORKFLOW ================= */}
       <section className="w-full bg-[#f4f6f1] py-20 border-t border-slate-200/80">

@@ -156,7 +156,7 @@ export default function HomePage() {
       list.push({
         ...videoList[targetIdx],
         originalIndex: targetIdx,
-        isCenter: i === 1 || total === 1, // Make it center if it's the middle one OR the only one
+        isCenter: i === 1 || total === 1,
       });
     }
     return list;
@@ -180,70 +180,33 @@ export default function HomePage() {
     <main className="w-full bg-[#fafbf9] text-[#0c1c18] font-sans antialiased overflow-x-hidden selection:bg-[#00241b] selection:text-white">
       
       {/* ================= SECTION 1: HERO SECTION ================= */}
-      <section className="relative w-full min-h-[90vh] lg:min-h-screen flex items-center px-6 sm:px-12 lg:px-20 py-16 bg-[#01140f] overflow-hidden transition-all duration-750">
-        
-        {/* Background Image fixed for mobile responsiveness */}
+      <section className="w-full bg-[#fafbf9] relative mb-8 md:mb-12">
         {currentHeroBg && (
-          <img 
-            src={currentHeroBg} 
-            alt="Hero Background" 
-            className="absolute inset-0 w-full h-full object-cover object-[75%_center] md:object-center z-0 opacity-90"
-          />
-        )}
-        
-        {/* Responsive Gradient Overlay (Allows image to show through nicely on mobile) */}
-        <div className="absolute inset-0 z-0 bg-gradient-to-b md:bg-gradient-to-r from-[#01140f]/95 via-[#01140f]/80 md:via-[#01140f]/60 to-transparent" />
-
-        <div className="relative z-10 w-full max-w-4xl mx-auto lg:mx-0 lg:pl-6 text-left pt-12 md:pt-0">
-          <span className="inline-flex items-center gap-1.5 bg-white/10 text-[#dfc886] text-[10px] md:text-xs font-bold tracking-[0.15em] px-3.5 py-1.5 rounded border border-white/10 uppercase mb-6 backdrop-blur-md">
-            <span>⚓</span> INNOVATION UNDER SURFACE
-          </span>
-          <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl lg:text-[4.2rem] text-white font-normal leading-[1.1] mb-6 drop-shadow-md">
-            Precision Marine Engineering
-          </h1>
-          <p className="text-sm sm:text-base md:text-lg text-slate-300 max-w-xl leading-relaxed mb-10 drop-shadow">
-            Pioneering the future of autonomous marine exploration with industrial-grade unmanned surface vehicles and high-fidelity sensory arrays.
-          </p>
-          <div className="flex flex-wrap gap-4">
-            <button 
-              type="button" 
-              className="bg-[#dfc886] hover:bg-[#d0b36b] text-[#01140f] px-6 md:px-7 py-3 md:py-3.5 text-sm md:text-base font-semibold rounded cursor-pointer transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-xl"
-              onClick={() => router.push("/products")}
-            >
-              Explore Systems <span>➔</span>
-            </button>
-            <button 
-              type="button" 
-              className="bg-white/10 hover:bg-white/20 text-white border border-white/20 px-6 md:px-7 py-3 md:py-3.5 text-sm md:text-base font-semibold rounded cursor-pointer transition-all duration-200 backdrop-blur-sm"
-              onClick={handleScrollToContent}
-            >
-              Watch Tech Demo
-            </button>
-          </div>
-        </div>
-
-        {heroBanners.length > 1 && (
-          <div className="absolute bottom-20 left-1/2 -translate-x-1/2 flex gap-2 z-20">
-            {heroBanners.map((_, dotIndex) => (
-              <button
-                key={dotIndex}
-                type="button"
-                className={`w-2 h-2 rounded-full transition-all duration-300 ${activeIndex === dotIndex ? "bg-[#dfc886] w-6" : "bg-white/40"}`}
-                onClick={() => setActiveIndex(dotIndex)}
-              />
-            ))}
+          <div className="relative w-full max-w-[1920px] mx-auto group">
+            
+            {/* FULLY RESPONSIVE IMAGE */}
+            <img 
+              src={currentHeroBg} 
+              alt="Hero Banner" 
+              className="w-full h-auto object-contain cursor-pointer"
+            />
+            
+            {/* CAROUSEL INDICATORS (Dashes) */}
+            {heroBanners.length > 1 && (
+              <div className="absolute bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-20 bg-black/30 px-3 py-1.5 sm:py-2 rounded-full backdrop-blur-sm transition-opacity opacity-80 group-hover:opacity-100">
+                {heroBanners.map((_, dotIndex) => (
+                  <button
+                    key={dotIndex}
+                    type="button"
+                    className={`w-4 sm:w-8 h-1 sm:h-1.5 rounded-full transition-all duration-300 ${activeIndex === dotIndex ? "bg-white" : "bg-white/40 hover:bg-white/70"}`}
+                    onClick={() => setActiveIndex(dotIndex)}
+                  />
+                ))}
+              </div>
+            )}
+            
           </div>
         )}
-
-        <div 
-          className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-white/70 hover:text-white transition-all cursor-pointer text-[10px] font-bold tracking-widest uppercase z-20"
-          onClick={handleScrollToContent}
-        >
-          <span>Scroll to Explore</span>
-          <div className="w-5 h-8 border-2 border-white/80 rounded-full relative">
-            <div className="w-1 h-2 bg-[#dfc886] rounded-full absolute left-1/2 -translate-x-1/2 top-1.5 animate-bounce" />
-          </div>
-        </div>
       </section>
 
       {/* ================= SECTION 2: HORIZONTAL WIDESCREEN YOUTUBE VIDEO SLIDER ================= */}
